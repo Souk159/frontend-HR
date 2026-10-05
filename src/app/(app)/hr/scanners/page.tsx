@@ -3,10 +3,18 @@
 import { useState } from "react";
 import { DataState, EmptyRow, Field, Lede, Modal, SectionHead, Table, Tag, useDialogs } from "@/components/ui";
 import { useLang } from "@/lib/i18n";
-import { useHRAccess, useProperties, useRegisterScanner, useScanners, useUpdateScanner } from "@/features/hr/api";
+import {
+  useCreateProperty,
+  useHRAccess,
+  useProperties,
+  useRegisterScanner,
+  useRenameProperty,
+  useScanners,
+  useUpdateScanner,
+} from "@/features/hr/api";
 import type { Property, Scanner } from "@/features/hr/types";
 
-/** The Go API only lets these roles register a scanner (POST /v1/hr/devices). */
+/** The Go API only lets these roles register a scanner or add / rename a property. */
 const REGISTER_ROLES = ["admin", "gm", "owner"];
 /** Server address entered on the scanner (COMM. → Cloud Server Setting, ADMS). */
 const ADMS_SERVER = "uat.superproject.yorlapa.com";
@@ -25,6 +33,7 @@ export default function ScannersPage() {
   const canRegister = REGISTER_ROLES.includes(access.data?.role ?? "");
   return (
     <div className="dash-wrap">
+      {canRegister && <PropertiesSection properties={props.data ?? []} loading={props.isLoading} error={props.error} />}
       <SectionHead title={t("sh_scanners")}>
         {canRegister && (
           <button type="button" className="submit-btn" onClick={() => setAdding(true)}>
@@ -154,6 +163,80 @@ function ScannerRow({ scanner, properties }: { scanner: Scanner; properties: Pro
       <td>
         {dirty && (
           <button type="button" className="mini-btn" onClick={save} disabled={update.isPending}>
+            Save
+          </button>
+        )}
+      </td>
+    </tr>
+  );
+}
+
+/** Properties (resorts) of the group — staff, scanners and outlets each belong to one. */
+function PropertiesSection({ properties, loading, error }: { properties: Property[]; loading: boolean; error: unknown }) {
+  const dialogs = useDialogs();
+  const create = useCreateProperty();
+  const [name, setName] = useState("");
+
+  async function add() {
+    const n = name.trim();
+    if (!n) return;
+    try {
+      await create.mutateAsync(n);
+      setName("");
+      dialogs.success("Property added", `${n} can now be chosen for employees and scanners.`);
+    } catch (err) {
+      dialogs.error("Could not add property", err);
+    }
+  }
+
+  return (
+    <>
+      <SectionHead title="Properties" />
+      <Lede>The resorts of the group. Renaming one keeps its employees, scanners and outlets linked to it.</Lede>
+      <div className="land-row">
+        <Field label="New property" grow={2}>
+          <input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} placeholder="e.g. Nampien Yorlapa" />
+        </Field>
+        <button type="button" className="submit-btn" onClick={add} disabled={create.isPending || !name.trim()}>
+          + Add property
+        </button>
+      </div>
+      <DataState loading={loading} error={error}>
+        <Table head={["Property", ""]}>
+          {properties.length === 0 && <EmptyRow cols={2}>No properties yet.</EmptyRow>}
+          {properties.map((p) => (
+            <PropertyRow key={`${p.id}:${p.name}`} property={p} />
+          ))}
+        </Table>
+      </DataState>
+      <div style={{ height: 28 }} />
+    </>
+  );
+}
+
+function PropertyRow({ property }: { property: Property }) {
+  const dialogs = useDialogs();
+  const rename = useRenameProperty();
+  const [name, setName] = useState(property.name);
+  const dirty = name.trim() !== property.name && name.trim() !== "";
+
+  async function save() {
+    try {
+      await rename.mutateAsync({ id: property.id, name: name.trim() });
+      dialogs.success("Property renamed", `${property.name} is now ${name.trim()}.`);
+    } catch (err) {
+      dialogs.error("Could not rename", err);
+    }
+  }
+
+  return (
+    <tr>
+      <td>
+        <input className="inline-input" value={name} onChange={(e) => setName(e.target.value)} style={{ minWidth: 260 }} />
+      </td>
+      <td>
+        {dirty && (
+          <button type="button" className="mini-btn" onClick={save} disabled={rename.isPending}>
             Save
           </button>
         )}

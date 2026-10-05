@@ -259,3 +259,8 @@ export const useRegisterScanner = () =>
     },
     [hrKeys.scanners],
   );
+const PROPERTY_USERS: QueryKey[] = [hrKeys.properties, hrKeys.scanners, ["hr", "staff"], ["hr", "attendance"]];
+export const useCreateProperty = () =>
+  useHRMutation((name: string) => api.post<Property>("/hr/properties", { name }), PROPERTY_USERS);
+export const useRenameProperty = () =>
+  useHRMutation(({ id, name }: { id: string; name: string }) => api.patch<Property>(`/hr/properties/${id}`, { name }), PROPERTY_USERS);
