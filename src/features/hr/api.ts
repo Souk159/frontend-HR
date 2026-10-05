@@ -249,3 +249,13 @@ export const useUpdateScanner = () =>
     hrKeys.scanners,
     ["hr", "attendance"],
   ]);
+/** Registers a scanner by serial number (admin / GM / owner), then assigns its property. */
+export const useRegisterScanner = () =>
+  useHRMutation(
+    async ({ serial_no, label, property_id }: { serial_no: string; label: string; property_id: string | null }) => {
+      const { id } = await api.post<{ id: string }>("/hr/devices", { serial_no, label });
+      if (property_id) await api.patch(`/hr/scanners/${id}`, { property_id, label });
+      return id;
+    },
+    [hrKeys.scanners],
+  );
