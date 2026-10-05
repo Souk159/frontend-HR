@@ -1,0 +1,32 @@
+# HR web frontend for fr-group.yorlapa.com
+#
+# Runs next to the superproject stack on the same VPS. It joins the
+# superproject's Docker network so that:
+#   • Kong (superproject) reaches this container as  http://hr_frontend:3000
+#   • this app calls the Go API server-side as        http://coffeeshop_api:8081
+# Nothing here is published to the internet directly — traffic comes through Kong.
+#
+# Start the superproject stack first (it creates the network), then:
+#   cp .env.example .env    # adjust if needed
+#   docker compose up -d --build
+
+services:
+  hr_frontend:
+    build: .
+    container_name: hr_frontend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+    # localhost-only port for debugging from the VPS (curl http://localhost:3000/login)
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks:
+      - superproject
+
+networks:
+  superproject:
+    external: true
+    # Compose names it "<project folder>_coffeeshop_net"; check with: docker network ls
+    name: ${SUPERPROJECT_NETWORK:-superproject_coffeeshop_net}
