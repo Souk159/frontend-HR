@@ -18,18 +18,18 @@ npm run dev                   # http://localhost:3000
 
 Checks: `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
-## Deploy on the VPS (fr-group.yorlapa.com)
+## Deploy on the VPS (hr-group.yorlapa.com)
 
 The app runs as one Docker container next to the superproject stack and is
 reached through the superproject's Kong gateway, which owns ports 80/443.
 
 ```
 Internet ─► Kong (superproject) ─┬─ uat.superproject.yorlapa.com ─► coffeeshop_api:8081 (Go API)
-                                 └─ fr-group.yorlapa.com         ─► hr_frontend:3000 (this app)
+                                 └─ hr-group.yorlapa.com         ─► hr_frontend:3000 (this app)
 hr_frontend ──server-side──► coffeeshop_api:8081   (same Docker network, no CORS, no public hop)
 ```
 
-1. **DNS**: add an `A` record `fr-group.yorlapa.com` → the VPS IP.
+1. **DNS**: add an `A` record `hr-group.yorlapa.com` → the VPS IP.
 2. **Superproject first** (it holds the Kong route and creates the Docker network):
    back up the database, then pull and restart — the Go server applies the new
    migrations on start.
@@ -38,7 +38,7 @@ hr_frontend ──server-side──► coffeeshop_api:8081   (same Docker networ
    docker exec coffeeshop_db pg_dump -U postgres coffeeshop_db > ~/backup-$(date +%F).sql
    git pull
    docker compose up -d --build backend
-   docker logs coffeeshop_api | grep migrate     # expect "applied 033…043"
+   docker logs coffeeshop_api | grep migrate     # expect "applied 033…044"
    ```
 3. **This app**:
    ```bash
@@ -54,11 +54,11 @@ hr_frontend ──server-side──► coffeeshop_api:8081   (same Docker networ
    cd /opt/superproject
    sudo bash scripts/kong-upload-cert.sh         # loads the new route (HTTP)
    docker compose stop kong
-   sudo certbot certonly --standalone -d fr-group.yorlapa.com --agree-tos -m your@email.com
+   sudo certbot certonly --standalone -d hr-group.yorlapa.com --agree-tos -m your@email.com
    docker compose start kong && sleep 10
    sudo bash scripts/kong-upload-cert.sh         # adds SSL for both domains
    ```
-   Open https://fr-group.yorlapa.com — sign in with a Yorsys account.
+   Open https://hr-group.yorlapa.com — sign in with a Yorsys account.
 
 Update later: `git pull && docker compose up -d --build`.
 

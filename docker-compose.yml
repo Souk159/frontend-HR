@@ -1,4 +1,4 @@
-# HR web frontend for fr-group.yorlapa.com
+# HR web frontend for hr-group.yorlapa.com
 #
 # Runs next to the superproject stack on the same VPS. It joins the
 # superproject's Docker network so that:
