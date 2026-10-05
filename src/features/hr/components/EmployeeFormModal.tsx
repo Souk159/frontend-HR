@@ -1,9 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Field, Modal, useDialogs } from "@/components/ui";
+import { Avatar, Field, Modal, useDialogs } from "@/components/ui";
 import { today } from "@/lib/format";
-import { fetchNextEmployeeNo, useCreateStaff, useDepartments, useProperties, useRequestStaffChange, useStaff } from "../api";
+import {
+  fetchNextEmployeeNo,
+  useCreateStaff,
+  useDeleteStaffPhoto,
+  useDepartments,
+  useProperties,
+  useRequestStaffChange,
+  useStaff,
+  useUploadStaffPhoto,
+} from "../api";
 import type { Staff, StaffInput } from "../types";
 import { EMPLOYMENT_TYPES } from "../utils";
 
@@ -84,6 +93,13 @@ function EmployeeForm({ editing: editingStaff, onClose }: { editing: Staff | nul
   const props = useProperties();
   const staff = useStaff(true);
   const create = useCreateStaff();
+  const uploadPhoto = useUploadStaffPhoto();
+  const deletePhoto = useDeleteStaffPhoto();
+  // a new hire's photo waits here until the employee exists
+  const [pendingPhoto, setPendingPhoto] = useState<File | null>(null);
+  const [pendingPreview, setPendingPreview] = useState<string | null>(null);
+  useEffect(() => () => { if (pendingPreview) URL.revokeObjectURL(pendingPreview); }, [pendingPreview]);
+  const [photoUrl, setPhotoUrl] = useState(editingStaff?.photo_url ?? "");
   const change = useRequestStaffChange();
   const dialogs = useDialogs();
   const [f, setF] = useState<StaffInput>(() =>
@@ -119,7 +135,12 @@ function EmployeeForm({ editing: editingStaff, onClose }: { editing: Staff | nul
       );
     try {
       if (isNew) {
-        await create.mutateAsync(body);
+        const created = await create.mutateAsync(body);
+        if (pendingPhoto) {
+          await uploadPhoto
+            .mutateAsync({ id: created.user_id, file: pendingPhoto })
+            .catch((err) => dialogs.error("Employee added, but the photo was not saved", err));
+        }
         onClose();
         dialogs.success("Employee added", `${body.full_name} has been added to the employee directory. No approval needed for a new hire.`);
       } else if (editingId) {
@@ -133,8 +154,76 @@ function EmployeeForm({ editing: editingStaff, onClose }: { editing: Staff | nul
   }
 
   const busy = create.isPending || change.isPending;
+  async function pickPhoto(file: File | undefined) {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) return dialogs.error("Photo too large", new Error("Choose a photo of 5 MB or smaller."));
+    if (!editingId) {
+      if (pendingPreview) URL.revokeObjectURL(pendingPreview);
+      setPendingPhoto(file);
+      setPendingPreview(URL.createObjectURL(file));
+      return;
+    }
+    try {
+      const r = await uploadPhoto.mutateAsync({ id: editingId, file });
+      setPhotoUrl(r.photo_url);
+    } catch (err) {
+      dialogs.error("Could not upload the photo", err);
+    }
+  }
+  async function removePhoto() {
+    if (!editingId) {
+      setPendingPhoto(null);
+      setPendingPreview(null);
+      return;
+    }
+    try {
+      await deletePhoto.mutateAsync(editingId);
+      setPhotoUrl("");
+    } catch (err) {
+      dialogs.error("Could not remove the photo", err);
+    }
+  }
+  const shownPhoto = photoUrl || editingStaff?.device_photo_url || "";
+  const photoNote = pendingPhoto
+    ? "Saved when the employee is added."
+    : photoUrl
+      ? "Uploaded by HR. Changing the photo applies immediately (no approval)."
+      : editingStaff?.device_photo_url
+        ? "Photo sent by the scanner. Upload one to replace it."
+        : "No photo yet. JPEG, PNG or WebP, up to 5 MB.";
+
   return (
     <>
+      <div className="land-row photo-field">
+        {pendingPreview ? (
+          // eslint-disable-next-line @next/next/no-img-element -- local preview of the chosen file
+          <img src={pendingPreview} alt="New photo" className="avatar-img" style={{ width: 72, height: 72 }} />
+        ) : (
+          <Avatar name={f.full_name || "New"} url={shownPhoto} size={72} />
+        )}
+        <div style={{ display: "grid", gap: 6 }}>
+          <span style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <label className="mini-btn" style={{ cursor: "pointer" }}>
+              {uploadPhoto.isPending ? "Uploading…" : shownPhoto || pendingPreview ? "Change photo" : "Upload photo"}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                hidden
+                onChange={(e) => {
+                  pickPhoto(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            {(photoUrl || pendingPreview) && (
+              <button type="button" className="mini-btn flag" onClick={removePhoto} disabled={deletePhoto.isPending}>
+                Remove
+              </button>
+            )}
+          </span>
+          <p className="hint">{photoNote}</p>
+        </div>
+      </div>
       <div className="land-row">
         <Field label="Employee ID" grow={2} hint={idClash ? <span className="c-clay">⚠ This ID is already used by {idClash.full_name}.</span> : undefined}>
           <div style={{ display: "flex", gap: 6 }}>

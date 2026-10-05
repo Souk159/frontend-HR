@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { DataState, EmptyRow, Field, Lede, SectionHead, Table, Tag, useDialogs } from "@/components/ui";
+import { Avatar, DataState, EmptyRow, Field, Lede, SectionHead, Table, Tag, useDialogs } from "@/components/ui";
 import { useLang } from "@/lib/i18n";
 import { fmtDate, lak } from "@/lib/format";
 import { useDepartments, useProperties, useRequestDepartmentChanges, useRequestResignation, useStaff } from "@/features/hr/api";
@@ -132,8 +132,13 @@ export default function DirectoryPage() {
                   <tr key={e.user_id}>
                     <td className="mono">{e.employee_no || "—"}</td>
                     <td>
-                      {e.full_name}
-                      {e.name_lao && <div className="hint">{e.name_lao}</div>}
+                      <span className="person">
+                        <Avatar name={e.full_name} url={e.photo_url || e.device_photo_url} size={36} onClick={() => setEditing(e)} />
+                        <span>
+                          {e.full_name}
+                          {e.name_lao && <div className="hint">{e.name_lao}</div>}
+                        </span>
+                      </span>
                     </td>
                     <td>{e.position || "—"}</td>
                     <td>{e.property || "—"}</td>

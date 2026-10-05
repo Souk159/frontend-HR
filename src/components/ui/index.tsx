@@ -6,6 +6,7 @@ import { useLang } from "@/lib/i18n";
 
 export { Modal } from "./Modal";
 export { DialogProvider, useDialogs } from "./Dialogs";
+export { Avatar, photoSrc } from "./Avatar";
 
 /** Prototype .field — uppercase label over an input/select. */
 export function Field({

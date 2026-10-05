@@ -90,6 +90,10 @@ export type Staff = {
   has_login: boolean;
   scanner_pin: string;
   requires_scan: boolean;
+  /** profile photo uploaded by HR ("" = none) */
+  photo_url: string;
+  /** enrolment photo the scanner sent for this employee's PIN */
+  device_photo_url: string;
 };
 
 /** Add / Edit employee form body */
@@ -143,6 +147,10 @@ export type Attendance = {
   department_id: string | null;
   department: string;
   at_other_property: boolean;
+  /** every face photo taken at a scan that day */
+  photos: { url: string; taken_at: string; device: string }[];
+  /** HR photo, else the scanner's enrolment photo ("" = none) */
+  profile_photo_url: string;
 };
 
 export type LeaveType = { id: number; name: string; default_quota: number; is_paid: boolean };

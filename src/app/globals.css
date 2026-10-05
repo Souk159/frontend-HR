@@ -171,3 +171,23 @@ table.inv-table tr.clickable:hover td { background: rgba(198, 155, 61, 0.06); }
 }
 .check-pill { display: inline-flex; align-items: center; gap: 4px; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 4px 10px; font-size: 11.5px; cursor: pointer; }
 .check-pill input { accent-color: var(--clay); }
+
+/* ── Staff photos ──────────────────────────────────────── */
+.avatar-img, .avatar-initials { border-radius: 50%; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; }
+.avatar-img { object-fit: cover; background: var(--sand); border: 1px solid var(--line); }
+.avatar-initials { background: var(--jade-light); color: var(--gold-light); font-weight: 700; letter-spacing: 0.02em; }
+.avatar-btn { border: none; background: none; padding: 0; cursor: zoom-in; border-radius: 50%; }
+.avatar-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.person { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.scan-thumbs { display: flex; gap: 4px; margin-top: 4px; }
+.scan-thumb { width: 30px; height: 38px; border-radius: 5px; object-fit: cover; border: 1px solid var(--line); cursor: zoom-in; background: var(--sand); padding: 0; }
+.photo-compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.photo-compare figure { margin: 0; text-align: center; }
+.photo-compare img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); background: var(--sand); }
+.photo-compare figcaption { font-size: 11.5px; color: var(--ink-soft); margin-top: 4px; }
+.photo-compare .empty-photo { width: 100%; aspect-ratio: 4 / 5; border-radius: 10px; border: 1px dashed var(--line); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--ink-soft); }
+.photo-field { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.photo-field .hint { margin: 0; }
+
+/* IDs, times and money never break across lines */
+table.inv-table td.mono { white-space: nowrap; }

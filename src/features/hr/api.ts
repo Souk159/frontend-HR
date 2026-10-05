@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient, type QueryKey } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { ApiError, api } from "@/lib/api";
 import type {
   Approval,
   Attendance,
@@ -155,6 +155,20 @@ export const useRequestMealQuotas = () =>
     (body: { user_id: string; meal_quota: number }[]) => api.post<Created>("/hr/staff/meal-quotas", body),
     [APPROVALS],
   );
+/** Profile photo — applies immediately (no approval). */
+async function sendPhoto(id: string, file: File) {
+  const body = new FormData();
+  body.append("photo", file);
+  const res = await fetch(`/api/v1/hr/staff/${id}/photo`, { method: "POST", body });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new ApiError(data.error ?? "Upload failed", res.status);
+  return data as { photo_url: string };
+}
+export const useUploadStaffPhoto = () =>
+  useHRMutation(({ id, file }: { id: string; file: File }) => sendPhoto(id, file), [["hr", "staff"], ["hr", "attendance"]]);
+export const useDeleteStaffPhoto = () =>
+  useHRMutation((id: string) => api.del(`/hr/staff/${id}/photo`), [["hr", "staff"], ["hr", "attendance"]]);
+
 export const useUpdateBenefits = () =>
   useHRMutation(
     ({ id, ...body }: { id: string; benefit_notes?: string; gets_service_charge?: boolean; gets_activities_bonus?: boolean }) =>
