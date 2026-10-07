@@ -95,16 +95,25 @@ src/
   proxy.ts                  Next 16 "proxy" (formerly middleware)
 ```
 
-## HR rules carried over from the prototype
+## HR rules carried over from the prototype (v168)
 
-- Adding an employee is immediate; every other change (profile, salary, quota,
-  work rules, meal quota, resignation, leave, part-time days, activities bonus %)
-  goes to **GM/COO approval** and is applied by the API only when approved.
+- Adding an employee is immediate. Every other change (profile, salary, quota,
+  work rules, meal quota, resignation, leave, part-time days, payroll submission,
+  closing a month, public holiday payouts, hours corrections, cost labels) follows
+  the **Approval Rule** tab: which of GM / COO / CEO sign off, and whether any one
+  is enough, all are needed, or no approval is needed. Changing the rules needs
+  COO or CEO. Owner and Admin can always decide.
+- Payroll is worked out from the month's hours: required hours = hours/day ×
+  days/week × 4 (pro-rated while the month runs); daily rate = base salary ÷ the
+  "salary calc days" in Work Rules; short hours are deducted, OT is paid over the
+  monthly limit (× OT rate) and within a day (× second rate). Approved leave counts
+  as worked. Payroll → submit for approval → send to Accountant → close the month
+  (closing saves the figures; a closed month can't be corrected).
 - HR Coordinators see only the tabs granted in *Manage HR Access*; payroll,
-  approvals and access management are never delegable.
-- Payroll and part-time costs go to the Accountant as one cost message per
-  department, never individual salaries.
+  approvals, access management and the v168 tabs are never delegable.
+- Payroll and part-time costs go to the Accountant as one cost message per cost
+  label (Department Cost Labeling), never individual salaries.
 
 Additions not in the prototype: **Property** per employee, **Scanner PIN** (links
-SmartAC/ZKTeco attendance to the employee) and the **Scanners** tab (which resort each
-scanner is at; attendance shows the scanner and resort of every scan).
+SmartAC/ZKTeco attendance to the employee) and the **Properties & Scanners** tab
+(which resort each scanner is at; attendance shows the scanner and resort of every scan).

@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { Field, useDialogs } from "@/components/ui";
 import { useRequestNewDepartment } from "../api";
+import { requestOutcome } from "../utils";
 
-const initial = { name: "", quota: "5", base_salary: "", hours_per_day: "8", days_per_week: "6", ot_rate: "1.5", annual: "15", sick: "10" };
+const initial = { name: "", quota: "5", base_salary: "", hours_per_day: "8", days_per_week: "6", ot_rate: "1.5", ot_rate_daily: "0.5", annual: "15", sick: "10" };
 
-/** Prototype #newDeptForm — a new department needs GM + COO approval. */
+/** Prototype #newDeptForm — a new department goes through the Approval Rule. */
 export function NewDepartmentForm({ onDone }: { onDone: () => void }) {
   const [f, setF] = useState(initial);
   const req = useRequestNewDepartment();
@@ -16,17 +17,18 @@ export function NewDepartmentForm({ onDone }: { onDone: () => void }) {
   async function submit() {
     if (!f.name.trim()) return dialogs.error("Missing name", new Error("Enter a department name first."));
     try {
-      await req.mutateAsync({
+      const res = await req.mutateAsync({
         name: f.name.trim(),
         quota: parseInt(f.quota) || 0,
         base_salary: parseFloat(f.base_salary) || 0,
         hours_per_day: parseFloat(f.hours_per_day) || 8,
         days_per_week: parseInt(f.days_per_week) || 6,
         ot_rate: parseFloat(f.ot_rate) || 1.5,
+        ot_rate_daily: parseFloat(f.ot_rate_daily) || 0,
         annual_leave_quota: parseInt(f.annual) || 15,
         sick_leave_quota: parseInt(f.sick) || 10,
       });
-      dialogs.success("Request sent", `New department "${f.name}" has been sent for GM and COO approval. It won't be usable anywhere in the system until approved.`);
+      dialogs.success(...requestOutcome(res, `New department "${f.name}"`));
       setF(initial);
       onDone();
     } catch (err) {
@@ -37,7 +39,7 @@ export function NewDepartmentForm({ onDone }: { onDone: () => void }) {
   return (
     <div className="card">
       <h3 style={{ fontSize: 13 }}>New department</h3>
-      <p className="hint">Creating a department needs GM and COO approval before it&apos;s usable across the system.</p>
+      <p className="hint">A new department goes through the Approval Rule before it&apos;s usable across the system.</p>
       <div className="land-row">
         <Field label="Department name">
           <input value={f.name} onChange={set("name")} placeholder="e.g. Spa" />
@@ -56,8 +58,11 @@ export function NewDepartmentForm({ onDone }: { onDone: () => void }) {
         <Field label="Days per week">
           <input value={f.days_per_week} onChange={set("days_per_week")} />
         </Field>
-        <Field label="OT rate (× hourly)">
+        <Field label="OT over the limit (× hourly)">
           <input value={f.ot_rate} onChange={set("ot_rate")} />
+        </Field>
+        <Field label="OT within the day (× hourly)">
+          <input value={f.ot_rate_daily} onChange={set("ot_rate_daily")} />
         </Field>
         <Field label="Annual leave (days/yr)">
           <input value={f.annual} onChange={set("annual")} />
@@ -67,7 +72,7 @@ export function NewDepartmentForm({ onDone }: { onDone: () => void }) {
         </Field>
       </div>
       <button type="button" className="add-line-btn" onClick={submit} disabled={req.isPending}>
-        Submit for approval
+        Submit
       </button>
     </div>
   );

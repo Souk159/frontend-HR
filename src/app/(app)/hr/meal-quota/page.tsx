@@ -5,6 +5,7 @@ import { DataState, EmptyRow, Lede, SectionHead, Table, useDialogs } from "@/com
 import { useLang } from "@/lib/i18n";
 import { useRequestMealQuotas, useStaff, useUpdateBenefits } from "@/features/hr/api";
 import type { Staff } from "@/features/hr/types";
+import { batchOutcome } from "@/features/hr/utils";
 
 export default function MealQuotaPage() {
   const { t } = useLang();
@@ -25,7 +26,7 @@ export default function MealQuotaPage() {
         body.forEach((b) => delete next[b.user_id]);
         return next;
       });
-      dialogs.success("Requests sent", `${r.requests_created} meal quota change(s) sent for GM and COO approval.`);
+      dialogs.success(...batchOutcome(r, "meal quota change(s)"));
     } catch (err) {
       dialogs.error("Could not send requests", err);
     }
@@ -35,15 +36,15 @@ export default function MealQuotaPage() {
     <div className="subview">
       <SectionHead title={t("sh_staff_meal_quota")} />
       <Lede>
-        Resets on the 1st of each month. Changing a quota needs GM and COO approval before it applies. Eligibility for the service charge and
-        activities bonus pools is also set here.
+        Resets on the 1st of each month. Changing a quota goes through the Approval Rule before it applies. Service charge and bonus
+        eligibility are set in each employee&apos;s profile (Employee Directory → Edit).
       </Lede>
       <button type="button" className="submit-btn" style={{ marginBottom: 12 }} onClick={() => send(staff.data ?? [])} disabled={request.isPending}>
         {t("save_all")}
       </button>
       <DataState loading={staff.isLoading} error={staff.error}>
-        <Table head={["Employee", "Department", "Monthly quota", "Used this month", "Remaining", "Benefit notes", "Service charge", "Activities bonus", ""]}>
-          {(staff.data ?? []).length === 0 && <EmptyRow cols={9}>No employees yet.</EmptyRow>}
+        <Table head={["Employee", "Department", "Monthly quota", "Used this month", "Remaining", "Benefit notes", ""]}>
+          {(staff.data ?? []).length === 0 && <EmptyRow cols={7}>No employees yet.</EmptyRow>}
           {staff.data?.map((s) => (
             <MealRow
               key={s.user_id}
@@ -64,7 +65,7 @@ function MealRow({ staff: s, draft, onDraft, onSave }: { staff: Staff; draft?: s
   const benefits = useUpdateBenefits();
   const [notes, setNotes] = useState(s.benefit_notes);
   const remaining = Math.max(0, s.meal_quota - s.meals_used);
-  const patch = (body: { benefit_notes?: string; gets_service_charge?: boolean; gets_activities_bonus?: boolean }) =>
+  const patch = (body: { benefit_notes?: string }) =>
     benefits.mutateAsync({ id: s.user_id, ...body }).catch((err) => dialogs.error("Could not save", err));
 
   return (
@@ -78,12 +79,6 @@ function MealRow({ staff: s, draft, onDraft, onSave }: { staff: Staff; draft?: s
       <td className={`mono ${remaining === 0 ? "c-clay bold" : ""}`}>{remaining}</td>
       <td>
         <input className="inline-input" style={{ width: 160 }} value={notes} placeholder="e.g. Free meal x2/week" onChange={(e) => setNotes(e.target.value)} onBlur={() => notes !== s.benefit_notes && patch({ benefit_notes: notes })} />
-      </td>
-      <td style={{ textAlign: "center" }}>
-        <input type="checkbox" checked={s.gets_service_charge} onChange={(e) => patch({ gets_service_charge: e.target.checked })} />
-      </td>
-      <td style={{ textAlign: "center" }}>
-        <input type="checkbox" checked={s.gets_activities_bonus} onChange={(e) => patch({ gets_activities_bonus: e.target.checked })} />
       </td>
       <td>
         <button type="button" className="mini-btn" onClick={onSave}>

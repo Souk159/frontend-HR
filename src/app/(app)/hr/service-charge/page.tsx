@@ -4,7 +4,7 @@ import { useState } from "react";
 import { DataState, Field, Lede, SectionHead, useDialogs } from "@/components/ui";
 import { useLang } from "@/lib/i18n";
 import { fmtMonth, lak, num, thisMonth } from "@/lib/format";
-import { useRequestActivitiesBonus, useSaveScAllocation, useServiceCharge } from "@/features/hr/api";
+import { useSaveScAllocation, useServiceCharge } from "@/features/hr/api";
 import type { ScAllocation } from "@/features/hr/types";
 
 export default function ServiceChargePage() {
@@ -13,12 +13,10 @@ export default function ServiceChargePage() {
   const [month, setMonth] = useState(thisMonth());
   const pool = useServiceCharge(month);
   const saveAlloc = useSaveScAllocation();
-  const requestPct = useRequestActivitiesBonus();
   // local edits; null = show what the server has
   const [draft, setDraft] = useState<ScAllocation[] | null>(null);
   const alloc = draft ?? pool.data?.allocation ?? [];
   const setAlloc = setDraft;
-  const [newPct, setNewPct] = useState("");
 
   const total = alloc.reduce((s, a) => s + (Number(a.pct) || 0), 0);
   const dirty = draft !== null;
@@ -33,25 +31,15 @@ export default function ServiceChargePage() {
     }
   }
 
-  async function request() {
-    const pct = parseFloat(newPct);
-    if (isNaN(pct) || pct < 0) return dialogs.error("Invalid %", new Error("Enter a valid percentage first."));
-    try {
-      await requestPct.mutateAsync(pct);
-      setNewPct("");
-      dialogs.success("Sent for approval", `Changing the Activities bonus to ${num(pct)}% has been sent for GM/COO approval — it won't take effect until then.`);
-    } catch (err) {
-      dialogs.error("Could not send request", err);
-    }
-  }
-
   const p = pool.data;
   return (
     <div className="subview">
       <SectionHead title={t("sh_service_charge_bonus")} />
       <Lede>
-        Pulled live from completed POS sales for the month. Each pool is split automatically across every employee marked eligible (Meal
-        Quota tab → eligibility flags).
+        Pulled live from completed POS sales for the month. The staff pool is split across every employee with &quot;Gets service
+        charge&quot; ticked in their profile, weighted by the hours they actually worked (capped at their required hours, so OT never
+        increases a share). Employees marked &quot;Always gets full service charge&quot; get the full share below whatever their hours.
+        Percentage-of-revenue and other bonuses now live under Bonus Types.
       </Lede>
       <Field label="Month" style={{ maxWidth: 220 }}>
         <input type="month" value={month} onChange={(e) => e.target.value && (setMonth(e.target.value), setDraft(null))} />
@@ -74,8 +62,12 @@ export default function ServiceChargePage() {
                 <b>{p.service_eligible}</b>
               </div>
               <div className="stat-row">
-                <span>Share per eligible employee</span>
+                <span>Full share per eligible employee (pool ÷ eligible)</span>
                 <b>{lak(p.service_share)}</b>
+              </div>
+              <div className="stat-row">
+                <span>Always get the full share</span>
+                <b>{p.full_share_count}</b>
               </div>
               <h3 style={{ fontSize: 13, marginTop: 14 }}>Where the collected service charge % goes</h3>
               <p className="hint">Not all of the service charge collected on a bill necessarily goes to the staff pool above — split it out here.</p>
@@ -113,41 +105,10 @@ export default function ServiceChargePage() {
               )}
             </div>
 
-            <div className="card">
-              <h3 style={{ fontSize: 14 }}>Activities bonus pool — {num(p.activities_bonus_pct)}% of activities revenue</h3>
-              <div className="stat-row">
-                <span>Total activities revenue this month</span>
-                <b>{lak(p.activities_revenue)}</b>
-              </div>
-              <div className="stat-row">
-                <span>Bonus pool</span>
-                <b>{lak(p.activities_pool)}</b>
-              </div>
-              <div className="stat-row">
-                <span>Eligible employees (Gets activities bonus ✓)</span>
-                <b>{p.activities_eligible}</b>
-              </div>
-              <div className="stat-row">
-                <span>Share per eligible employee</span>
-                <b>{lak(p.activities_share)}</b>
-              </div>
-              <div className="land-row" style={{ marginTop: 10 }}>
-                <Field label="New Activities bonus %">
-                  <input type="number" value={newPct} onChange={(e) => setNewPct(e.target.value)} placeholder="e.g. 1.5" style={{ width: 120 }} />
-                </Field>
-                <button type="button" className="mini-btn" onClick={request} disabled={requestPct.isPending || !!p.pending_activities_bonus}>
-                  Request change
-                </button>
-              </div>
-              {p.pending_activities_bonus && (
-                <p className="hint warn">Change to {p.pending_activities_bonus}% requested — awaiting GM/COO approval.</p>
-              )}
-              <p className="hint">Any change here needs GM/COO approval before it takes effect. Activities revenue = sales of products whose outlet is in the &quot;Activity&quot; department.</p>
-            </div>
           </>
         )}
       </DataState>
-      <Lede>Both shares flow straight into Payroll&apos;s Service charge and Activities bonus columns for every eligible employee.</Lede>
+      <Lede>Each person&apos;s share flows straight into Payroll&apos;s Service charge column.</Lede>
     </div>
   );
 }

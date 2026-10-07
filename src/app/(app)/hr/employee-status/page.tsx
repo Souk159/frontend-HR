@@ -21,9 +21,12 @@ const byDays = (key: "probation_end_date" | "contract_end") => (a: Staff, b: Sta
 export default function EmployeeStatusPage() {
   const { t } = useLang();
   const [sort, setSort] = useState<Sort>(null);
+  const [expiringOnly, setExpiringOnly] = useState(false);
   const staff = useStaff();
   const depts = useDepartments();
-  const groups = groupByDept(staff.data ?? [], (e) => e.department, (depts.data ?? []).map((d) => d.name)).filter(([, r]) => r.length > 0);
+  // prototype v168 "Contracts/probation expiring soon": within 30 days or overdue
+  const shown = (staff.data ?? []).filter((e) => !expiringOnly || statusWarning(e).kind !== "ok");
+  const groups = groupByDept(shown, (e) => e.department, (depts.data ?? []).map((d) => d.name)).filter(([, r]) => r.length > 0);
 
   return (
     <div className="subview">
@@ -35,6 +38,9 @@ export default function EmployeeStatusPage() {
         </button>
         <button type="button" className="mini-btn" onClick={() => setSort("contract")}>
           Sort by Contract
+        </button>
+        <button type="button" className={`mini-btn${expiringOnly ? " flag" : ""}`} onClick={() => setExpiringOnly((v) => !v)}>
+          ⚠ Contracts/probation expiring soon{expiringOnly ? " ✓" : ""}
         </button>
         <button type="button" className="mini-btn" onClick={() => setSort(null)}>
           Clear sort
@@ -67,6 +73,7 @@ export default function EmployeeStatusPage() {
             </div>
           );
         })}
+        {expiringOnly && groups.length === 0 && <p className="empty">No contracts or probations expiring within the next 30 days.</p>}
       </DataState>
     </div>
   );

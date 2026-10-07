@@ -36,7 +36,7 @@ export default function AttendancePage() {
         status: "", overtime_hrs: 0, note: "", photo_url: "", position: s.position, check_in_device: "", check_out_device: "",
         scan_property_id: null, scan_property: "", home_property_id: s.property_id, home_property: s.property,
         department_id: s.department_id, department: s.department, at_other_property: false, missing: true,
-        photos: [], profile_photo_url: s.photo_url || s.device_photo_url,
+        photos: [], profile_photo_url: s.photo_url || s.device_photo_url, is_manual: false,
       });
     }
     return recs.filter((r) => !propertyId || r.scan_property_id === propertyId || r.home_property_id === propertyId);
@@ -94,6 +94,7 @@ export default function AttendancePage() {
                       <td className="mono">
                         {fmtTime(r.check_in)}
                         {r.check_in_device && <div className="hint">{r.check_in_device}</div>}
+                        {r.is_manual && <Tag kind="muted">Manual</Tag>}
                       </td>
                       <td className="mono">
                         {fmtTime(r.check_out)}

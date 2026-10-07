@@ -8,15 +8,21 @@ type NavItem = {
   needs: HRTab | "can_approve" | "can_manage_access";
 };
 
-/** Tab order follows the prototype's HR screen. The last three were separate screens there. */
+/** Tab order follows the prototype's HR screen (v168). The last three were separate screens there. */
 export const HR_NAV: NavItem[] = [
   { href: "/hr/directory", label: "tb_employee_directory", needs: "directory" },
   { href: "/hr/part-time", label: "tb_part_time", needs: "part_time" },
   { href: "/hr/attendance", label: "tb_attendance", needs: "attendance" },
   { href: "/hr/leave", label: "tb_leave_requests", needs: "leave" },
   { href: "/hr/employee-status", label: "tb_employee_status", needs: "employee_status" },
+  { href: "/hr/resigned", label: "tb_resigned", needs: "resigned" },
   { href: "/hr/leave-quota", label: "tb_leave_quota", needs: "leave_quota" },
   { href: "/hr/work-rules", label: "tb_work_rules", needs: "work_rules" },
+  { href: "/hr/approval-rule", label: "tb_approval_rule", needs: "approval_rule" },
+  { href: "/hr/manual-hours", label: "tb_manual_hours", needs: "manual_hours" },
+  { href: "/hr/cost-labels", label: "tb_cost_labels", needs: "cost_labels" },
+  { href: "/hr/bonus-types", label: "tb_bonus_types", needs: "bonus_types" },
+  { href: "/hr/public-holiday", label: "tb_public_holiday", needs: "public_holiday" },
   { href: "/hr/service-charge", label: "tb_service_charge_bonus", needs: "service_charge" },
   { href: "/hr/meal-quota", label: "tb_meal_quota", needs: "meal_quota" },
   { href: "/hr/payroll", label: "tb_payroll", needs: "payroll" },

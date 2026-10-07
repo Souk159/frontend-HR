@@ -15,13 +15,16 @@ export default function LeaveQuotaPage() {
   const staff = useStaff();
   const types = quota.data?.leave_types ?? [];
   const bal = new Map((quota.data?.balances ?? []).map((b) => [`${b.user_id}:${b.leave_type_id}`, b]));
+  // only employees with "Gets annual leave quota" ticked are returned (prototype v168)
+  const listed = new Set((quota.data?.balances ?? []).map((b) => b.user_id));
 
   return (
     <div className="subview">
       <SectionHead title={t("sh_leave_quota")} />
       <Lede>
         Leave remaining for each employee this year. Annual and sick quotas come from the department&apos;s Work Rules; custom leave types
-        can be set per person here.
+        and public holidays can be set per person here. Only employees with &quot;Gets annual leave quota&quot; ticked in their profile
+        appear — tick it there to grant someone a leave quota.
       </Lede>
       <DataState loading={quota.isLoading || staff.isLoading} error={quota.error || staff.error}>
         <div className="table-wrap">
@@ -40,7 +43,7 @@ export default function LeaveQuotaPage() {
               </tr>
             </thead>
             <tbody>
-              {staff.data?.map((e) => (
+              {staff.data?.filter((e) => listed.has(e.user_id)).map((e) => (
                 <tr key={e.user_id}>
                   <td>{e.full_name}</td>
                   <td>{e.department || "—"}</td>

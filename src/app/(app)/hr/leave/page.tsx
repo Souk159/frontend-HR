@@ -5,6 +5,7 @@ import { DataState, EmptyRow, Field, Lede, SectionHead, StatusTag, Table, useDia
 import { useLang } from "@/lib/i18n";
 import { daysUntil, fmtDate, num, today } from "@/lib/format";
 import { useCreateLeaveRequest, useCreateLeaveType, useLeaveRequests, useLeaveTypes, useStaff } from "@/features/hr/api";
+import { requestOutcome } from "@/features/hr/utils";
 
 /** Calendar days between two dates, inclusive. */
 const spanDays = (from: string, to: string) => Math.max(1, (daysUntil(to) ?? 0) - (daysUntil(from) ?? 0) + 1);
@@ -30,9 +31,9 @@ export default function LeavePage() {
     if (!emp) return dialogs.error("Missing employee", new Error("Select an employee before adding."));
     const days = parseFloat(f.days) || 1;
     try {
-      await createReq.mutateAsync({ user_id: emp.user_id, leave_type_id: typeId, start_date: f.from, end_date: f.to, days, reason: f.reason });
+      const res = await createReq.mutateAsync({ user_id: emp.user_id, leave_type_id: typeId, start_date: f.from, end_date: f.to, days, reason: f.reason });
       const typeName = types.data?.find((x) => x.id === typeId)?.name ?? "Leave";
-      dialogs.success("Request sent", `${typeName} for ${emp.full_name} (${num(days)} day${days > 1 ? "s" : ""}) has been sent for GM and COO approval.`);
+      dialogs.success(...requestOutcome(res, `${typeName} for ${emp.full_name} (${num(days)} day${days > 1 ? "s" : ""})`));
       setF((p) => ({ ...p, days: "1", reason: "" }));
     } catch (err) {
       dialogs.error("Could not send request", err);
@@ -58,8 +59,9 @@ export default function LeavePage() {
     <div className="subview">
       <SectionHead title={t("sh_leave_requests")} />
       <Lede>
-        Most staff don&apos;t have a phone to request leave themselves — HR logs it here on their behalf. Every request below goes to GM and
-        COO for approval, and only deducts from the employee&apos;s quota once approved.
+        Most staff don&apos;t have a phone to request leave themselves — HR logs it here on their behalf. Every request below goes through the
+        Approval Rule, and only deducts from the employee&apos;s quota once approved. Public holidays (Public Holiday tab) appear here as
+        leave types and can only be taken inside their window.
       </Lede>
       <div className="card">
         <h3 style={{ fontSize: 14 }}>New leave request</h3>
@@ -97,7 +99,7 @@ export default function LeavePage() {
             <input value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value })} />
           </Field>
           <button type="button" className="add-line-btn" onClick={submit} disabled={createReq.isPending}>
-            Send for GM/COO approval
+            Send for approval
           </button>
         </div>
       </div>

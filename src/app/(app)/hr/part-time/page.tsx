@@ -15,7 +15,7 @@ import {
   useUpdateDailyHire,
 } from "@/features/hr/api";
 import type { DailyHire, DailyHireDay, DayStatus } from "@/features/hr/types";
-import { groupByDept } from "@/features/hr/utils";
+import { groupByDept, requestOutcome } from "@/features/hr/utils";
 
 const editable = (s: DayStatus) => s === "draft" || s === "unlocked" || s === "denied";
 
@@ -54,8 +54,11 @@ function AddPanel() {
   const dialogs = useDialogs();
   const [date, setDate] = useState(today());
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: "", department_id: "", outlet_id: "", price: "" });
+  const [form, setForm] = useState({ name: "", department_id: "", outlet_id: "", price: "", comment: "" });
   const hires = useDailyHires(date);
+  const allDays = useDailyHireDays();
+  // reasons used before, offered as suggestions (prototype dhCommentList)
+  const pastComments = [...new Set((allDays.data ?? []).flatMap((d) => d.hires.map((h) => h.comment)).filter(Boolean))];
   const depts = useDepartments();
   const outlets = useOutlets();
   const create = useCreateDailyHire();
@@ -67,8 +70,11 @@ function AddPanel() {
     if (!form.name.trim() || !price || !dept)
       return dialogs.error("Missing information", new Error("Enter at least a name, department and price per day."));
     try {
-      await create.mutateAsync({ work_date: date, name: form.name.trim(), department_id: dept, outlet_id: form.outlet_id || null, price_per_day: price });
-      setForm((f) => ({ ...f, name: "", price: "" }));
+      await create.mutateAsync({
+        work_date: date, name: form.name.trim(), department_id: dept, outlet_id: form.outlet_id || null, price_per_day: price,
+        comment: form.comment.trim(),
+      });
+      setForm((f) => ({ ...f, name: "", price: "", comment: "" }));
       setShowForm(false);
     } catch (err) {
       dialogs.error("Could not add", err);
@@ -86,19 +92,20 @@ function AddPanel() {
       </Field>
       {!editable(status) && (
         <p className="hint warn">
-          {fmtDate(date)} is {status === "pending" ? "waiting for GM/COO approval" : "already approved"} — new part-time staff can&apos;t be
+          {fmtDate(date)} is {status === "pending" ? "waiting for approval" : "already approved"} — new part-time staff can&apos;t be
           added to it. Use &quot;Request a change&quot; in Approval and History instead.
         </p>
       )}
       <DataState loading={hires.isLoading} error={hires.error}>
-        <Table head={["Name", "Department", "Outlet", "Price / day"]}>
-          {(hires.data?.hires ?? []).length === 0 && <EmptyRow cols={4}>No part-time staff logged for {fmtDate(date)} yet.</EmptyRow>}
+        <Table head={["Name", "Department", "Outlet", "Price / day", "Comment"]}>
+          {(hires.data?.hires ?? []).length === 0 && <EmptyRow cols={5}>No part-time staff logged for {fmtDate(date)} yet.</EmptyRow>}
           {hires.data?.hires.map((h) => (
             <tr key={h.id}>
               <td>{h.name}</td>
               <td>{h.department}</td>
               <td>{h.outlet || "—"}</td>
               <td className="mono">{lak(h.price_per_day)}</td>
+              <td>{h.comment || <span className="c-soft">—</span>}</td>
             </tr>
           ))}
         </Table>
@@ -136,6 +143,14 @@ function AddPanel() {
             <Field label="Price per day (₭)">
               <input inputMode="numeric" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value.replace(/[^\d]/g, "") })} placeholder="e.g. 120000" />
             </Field>
+            <Field label="Comment (reason for hiring)" grow={2}>
+              <input list="dh-comments" value={form.comment} onChange={(e) => setForm({ ...form, comment: e.target.value })} placeholder="e.g. covering for staff on leave" />
+              <datalist id="dh-comments">
+                {pastComments.map((c) => (
+                  <option key={c} value={c} />
+                ))}
+              </datalist>
+            </Field>
             <button type="button" className="submit-btn" onClick={save} disabled={create.isPending}>
               Save
             </button>
@@ -152,8 +167,8 @@ function HistoryPanel({ days, loading, error }: { days: DailyHireDay[]; loading:
   return (
     <>
       <Lede>
-        One entry per day worked. Editable — name, price, and removing someone — only until you send it for GM/COO approval; it locks the
-        moment it&apos;s sent. Once GM/COO approve a day, &quot;Send to Accountant&quot; appears.
+        One entry per day worked. Editable — name, price, and removing someone — only until you send it for approval; it locks the
+        moment it&apos;s sent. Once it is approved (Approval Rule), &quot;Send to Accountant&quot; appears.
       </Lede>
       <Field label="Filter by date" style={{ maxWidth: 220 }}>
         <select value={filter} onChange={(e) => setFilter(e.target.value)}>
@@ -185,13 +200,9 @@ function DayCard({ day }: { day: DailyHireDay }) {
   async function run(kind: "submit" | "unlock" | "send-to-accounting") {
     try {
       const r = await action.mutateAsync({ date: day.work_date, action: kind });
-      if (kind === "submit")
-        dialogs.success(
-          day.status === "unlocked" ? "Correction sent" : "Request sent",
-          `Part-time list for ${date} (${day.hires.length} staff) has been sent for GM and COO approval.`,
-        );
+      if (kind === "submit") dialogs.success(...requestOutcome(r, `Part-time list for ${date} (${day.hires.length} staff)`));
       if (kind === "unlock")
-        dialogs.success("Unlocked for editing", `${date}'s part-time list is now editable. Make your corrections, then send them for GM/COO approval.`);
+        dialogs.success("Unlocked for editing", `${date}'s part-time list is now editable. Make your corrections, then send them for approval.`);
       if (kind === "send-to-accounting")
         dialogs.success("Sent to Accountant", `Part-time cost for ${date} sent as ${r.messages_sent} department message(s).`);
     } catch (err) {
@@ -209,12 +220,12 @@ function DayCard({ day }: { day: DailyHireDay }) {
           <DayStatusTag status={day.status} />
           {(day.status === "draft" || day.status === "denied") && (
             <button type="button" className="mini-btn" onClick={() => run("submit")} disabled={action.isPending}>
-              Send for GM/COO approval
+              Send for approval
             </button>
           )}
           {day.status === "unlocked" && (
             <button type="button" className="submit-btn" style={{ padding: "6px 12px", fontSize: 11 }} onClick={() => run("submit")} disabled={action.isPending}>
-              Send correction for GM/COO approval
+              Send correction for approval
             </button>
           )}
           {day.status === "approved" && !day.sent_to_accounting && (

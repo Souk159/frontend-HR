@@ -4,11 +4,12 @@ import { useMemo, useState } from "react";
 import { Avatar, DataState, EmptyRow, Field, Lede, SectionHead, Table, Tag, useDialogs } from "@/components/ui";
 import { useLang } from "@/lib/i18n";
 import { fmtDate, lak } from "@/lib/format";
-import { useDepartments, useProperties, useRequestDepartmentChanges, useRequestResignation, useStaff } from "@/features/hr/api";
+import { useDepartments, useProperties, useRequestDepartmentChanges, useStaff } from "@/features/hr/api";
 import { EmployeeFormModal } from "@/features/hr/components/EmployeeFormModal";
 import { NewDepartmentForm } from "@/features/hr/components/NewDepartmentForm";
 import type { Staff } from "@/features/hr/types";
-import { groupByDept, matchesSearch } from "@/features/hr/utils";
+import { batchOutcome, groupByDept, matchesSearch } from "@/features/hr/utils";
+import { ResignModal } from "@/features/hr/components/ResignModal";
 
 export default function DirectoryPage() {
   const { t } = useLang();
@@ -17,12 +18,12 @@ export default function DirectoryPage() {
   const depts = useDepartments();
   const props = useProperties();
   const saveChanges = useRequestDepartmentChanges();
-  const resign = useRequestResignation();
 
   const [search, setSearch] = useState("");
   const [propertyId, setPropertyId] = useState("");
   const [showNewDept, setShowNewDept] = useState(false);
   const [editing, setEditing] = useState<Staff | "new" | null>(null);
+  const [resigning, setResigning] = useState<Staff | null>(null);
   // draft quota / base salary per department id
   const [drafts, setDrafts] = useState<Record<string, { quota?: string; base_salary?: string }>>({});
 
@@ -51,21 +52,12 @@ export default function DirectoryPage() {
     try {
       const r = await saveChanges.mutateAsync(changes);
       setDrafts({});
-      dialogs.success("Requests sent", `${r.requests_created} change(s) sent for GM and COO approval.`);
+      dialogs.success(...batchOutcome(r, "change(s)"));
     } catch (err) {
       dialogs.error("Could not send requests", err);
     }
   }
 
-  async function requestResignation(emp: Staff) {
-    if (!window.confirm(`Send a resignation request for ${emp.full_name} to GM and COO?`)) return;
-    try {
-      await resign.mutateAsync(emp.user_id);
-      dialogs.success("Request sent", `Resignation request for ${emp.full_name} has been sent for GM and COO approval.`);
-    } catch (err) {
-      dialogs.error("Could not send request", err);
-    }
-  }
 
   return (
     <div className="subview">
@@ -151,7 +143,7 @@ export default function DirectoryPage() {
                       <button type="button" className="mini-btn" onClick={() => setEditing(e)}>
                         Edit
                       </button>
-                      <button type="button" className="mini-btn flag" onClick={() => requestResignation(e)}>
+                      <button type="button" className="mini-btn flag" onClick={() => setResigning(e)}>
                         Resignation
                       </button>
                     </td>
@@ -164,10 +156,11 @@ export default function DirectoryPage() {
       </DataState>
       <Lede>
         Quota and base salary above are the only things editable directly on this page — everything else about an employee goes through
-        Edit, and needs GM/COO approval. Adding a new employee is immediate.
+        Edit, and goes through the Approval Rule. Adding a new employee is immediate.
       </Lede>
 
       <EmployeeFormModal editing={editing} onClose={() => setEditing(null)} />
+      <ResignModal employee={resigning} onClose={() => setResigning(null)} />
     </div>
   );
 }

@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { Avatar, Field, Modal, useDialogs } from "@/components/ui";
-import { today } from "@/lib/format";
+import { lak, thisMonth, today } from "@/lib/format";
 import {
   fetchNextEmployeeNo,
+  useBonusTypes,
   useCreateStaff,
   useDeleteStaffPhoto,
   useDepartments,
@@ -14,7 +15,7 @@ import {
   useUploadStaffPhoto,
 } from "../api";
 import type { Staff, StaffInput } from "../types";
-import { EMPLOYMENT_TYPES } from "../utils";
+import { EMPLOYMENT_TYPES, requestOutcome } from "../utils";
 
 const blank = (): StaffInput => ({
   employee_no: "",
@@ -40,6 +41,10 @@ const blank = (): StaffInput => ({
   note: "",
   scanner_pin: "",
   requires_scan: true,
+  gets_service_charge: true,
+  always_full_service: false,
+  gets_annual_leave: true,
+  bonus_type_ids: [],
 });
 
 const fromStaff = (s: Staff): StaffInput => ({
@@ -66,11 +71,15 @@ const fromStaff = (s: Staff): StaffInput => ({
   note: s.note,
   scanner_pin: s.scanner_pin,
   requires_scan: s.requires_scan,
+  gets_service_charge: s.gets_service_charge,
+  always_full_service: s.always_full_service,
+  gets_annual_leave: s.gets_annual_leave,
+  bonus_type_ids: s.bonus_type_ids ?? [],
 });
 
 /**
- * Add employee (immediate, no approval) / Edit employee (sent for GM/COO approval).
- * Mirrors the prototype's employeeFormModal; adds Property and Scanner PIN.
+ * Add employee (immediate, no approval) / Edit employee (goes through the Approval Rule).
+ * Mirrors the prototype's employeeFormModal (v168 flags and bonus ticks); adds Property and Scanner PIN.
  */
 export function EmployeeFormModal({ editing, onClose }: { editing: Staff | null | "new"; onClose: () => void }) {
   const editingStaff = editing && editing !== "new" ? editing : null;
@@ -144,9 +153,9 @@ function EmployeeForm({ editing: editingStaff, onClose }: { editing: Staff | nul
         onClose();
         dialogs.success("Employee added", `${body.full_name} has been added to the employee directory. No approval needed for a new hire.`);
       } else if (editingId) {
-        await change.mutateAsync({ id: editingId, body });
+        const res = await change.mutateAsync({ id: editingId, body });
         onClose();
-        dialogs.success("Request sent", `Changes to ${body.full_name}'s profile have been sent for GM and COO approval.`);
+        dialogs.success(...requestOutcome(res, `Changes to ${body.full_name}'s profile`));
       }
     } catch (err) {
       dialogs.error(isNew ? "Could not add employee" : "Could not send request", err);
@@ -235,12 +244,6 @@ function EmployeeForm({ editing: editingStaff, onClose }: { editing: Staff | nul
         </Field>
         <Field label="Scanner PIN" hint="PIN enrolled on the SmartAC / ZKTeco scanner at this property">
           <input className="mono" inputMode="numeric" value={f.scanner_pin} onChange={(e) => set("scanner_pin", e.target.value.replace(/\D/g, ""))} placeholder="e.g. 77" />
-        </Field>
-        <Field label="Attendance" hint={f.requires_scan ? "Hours are checked against scans in Payroll" : "Paid in full — no attendance deduction"}>
-          <label className="check-label">
-            <input type="checkbox" checked={f.requires_scan} onChange={(e) => set("requires_scan", e.target.checked)} />
-            Must scan attendance
-          </label>
         </Field>
       </div>
       <div className="land-row">
@@ -343,9 +346,52 @@ function EmployeeForm({ editing: editingStaff, onClose }: { editing: Staff | nul
       <Field label="Employee notes">
         <input value={f.note} onChange={(e) => set("note", e.target.value)} placeholder="Optional" />
       </Field>
+      <PayrollFlags f={f} set={set} />
       <button type="button" className="submit-btn" onClick={submit} disabled={busy}>
-        {busy ? "…" : isNew ? "+ Add employee" : "Submit changes for approval"}
+        {busy ? "…" : isNew ? "+ Add employee" : "Submit changes"}
       </button>
     </>
+  );
+}
+
+/** Prototype v168 payroll flags and bonus ticks — nobody gets a bonus type until it is ticked here. */
+function PayrollFlags({ f, set }: { f: StaffInput; set: <K extends keyof StaffInput>(k: K, v: StaffInput[K]) => void }) {
+  const bonusTypes = useBonusTypes(thisMonth());
+  const toggleBonus = (id: string, on: boolean) =>
+    set("bonus_type_ids", on ? [...f.bonus_type_ids, id] : f.bonus_type_ids.filter((b) => b !== id));
+  return (
+    <div className="field">
+      <label>Payroll &amp; benefits</label>
+      <label className="check-label">
+        <input type="checkbox" checked={f.gets_service_charge} onChange={(e) => set("gets_service_charge", e.target.checked)} />
+        Gets service charge
+      </label>
+      <label className="check-label">
+        <input type="checkbox" checked={f.always_full_service} onChange={(e) => set("always_full_service", e.target.checked)} />
+        Always gets full service charge (even on leave)
+      </label>
+      <label className="check-label">
+        <input type="checkbox" checked={!f.requires_scan} onChange={(e) => set("requires_scan", !e.target.checked)} />
+        No fingerprint scan needed (e.g. GM, HR) — full salary, no OT
+      </label>
+      <label className="check-label">
+        <input type="checkbox" checked={f.gets_annual_leave} onChange={(e) => set("gets_annual_leave", e.target.checked)} />
+        Gets annual leave quota (appears on Leave Quota)
+      </label>
+      {(bonusTypes.data ?? []).length > 0 && (
+        <>
+          <label style={{ marginTop: 8 }}>Bonuses</label>
+          {bonusTypes.data?.map((b) => (
+            <label key={b.id} className="check-label">
+              <input type="checkbox" checked={f.bonus_type_ids.includes(b.id)} onChange={(e) => toggleBonus(b.id, e.target.checked)} />
+              {b.name}
+              <span className="c-soft" style={{ fontSize: 11 }}>
+                {b.kind === "flat" ? `— ${lak(b.amount)} each` : "— pooled, split evenly"}
+              </span>
+            </label>
+          ))}
+        </>
+      )}
+    </div>
   );
 }

@@ -3,9 +3,18 @@
 import { useMutation, useQuery, useQueryClient, type QueryKey } from "@tanstack/react-query";
 import { ApiError, api } from "@/lib/api";
 import type {
+  Accepted,
   Approval,
+  ApprovalRule,
   Attendance,
+  BonusType,
   Coordinator,
+  CostLines,
+  Created,
+  FinalPayRow,
+  ManualHours,
+  OrgSettings,
+  PublicHoliday,
   DailyHire,
   DailyHireDay,
   Department,
@@ -47,6 +56,13 @@ export const hrKeys = {
   overview: ["hr", "overview"] as const,
   coordinators: ["hr", "coordinators"] as const,
   scanners: ["hr", "scanners"] as const,
+  orgSettings: ["hr", "org-settings"] as const,
+  approvalRules: ["hr", "approval-rules"] as const,
+  resigned: ["hr", "resigned"] as const,
+  manualHours: (month: string) => ["hr", "manual-hours", month] as const,
+  bonusTypes: (month: string) => ["hr", "bonus-types", month] as const,
+  costLines: ["hr", "cost-lines"] as const,
+  holidays: ["hr", "public-holidays"] as const,
 };
 
 // ── Queries ──────────────────────────────────────────────────────────────────
@@ -111,6 +127,25 @@ export const useCoordinators = () =>
     queryFn: () => api.get<{ coordinators: Coordinator[]; available_tabs: string[] }>("/hr/coordinators"),
   });
 export const useScanners = () => useQuery({ queryKey: hrKeys.scanners, queryFn: () => api.get<Scanner[]>("/hr/scanners") });
+export const useOrgSettings = () =>
+  useQuery({ queryKey: hrKeys.orgSettings, queryFn: () => api.get<OrgSettings>("/hr/org-settings") });
+export const useApprovalRules = () =>
+  useQuery({
+    queryKey: hrKeys.approvalRules,
+    queryFn: () => api.get<{ rules: ApprovalRule[]; pending_change: string | null }>("/hr/approval-rules"),
+  });
+export const useResigned = () => useQuery({ queryKey: hrKeys.resigned, queryFn: () => api.get<FinalPayRow[]>("/hr/resigned") });
+export const useManualHours = (month: string) =>
+  useQuery({ queryKey: hrKeys.manualHours(month), queryFn: () => api.get<ManualHours>(`/hr/manual-hours?month=${month}`) });
+export const useBonusTypes = (month: string, enabled = true) =>
+  useQuery({
+    queryKey: hrKeys.bonusTypes(month),
+    queryFn: () => api.get<BonusType[]>(`/hr/bonus-types?month=${month}`),
+    enabled,
+  });
+export const useCostLines = () => useQuery({ queryKey: hrKeys.costLines, queryFn: () => api.get<CostLines>("/hr/cost-lines") });
+export const usePublicHolidays = () =>
+  useQuery({ queryKey: hrKeys.holidays, queryFn: () => api.get<PublicHoliday[]>("/hr/public-holidays") });
 
 // ── Mutations ────────────────────────────────────────────────────────────────
 
@@ -125,35 +160,38 @@ function useHRMutation<TVars, TRes = unknown>(fn: (v: TVars) => Promise<TRes>, i
   });
 }
 
-const APPROVALS: QueryKey = ["hr", "approvals"];
-type Accepted = { approval_id: string };
-type Created = { requests_created: number };
+// A request may be applied at once when its Approval Rule needs no approval, so
+// change requests refresh everything they could have touched.
+const HR_ALL: QueryKey = ["hr"];
 
 export const useRequestNewDepartment = () =>
-  useHRMutation((body: DeptRules) => api.post<Accepted>("/hr/departments", body), [APPROVALS]);
+  useHRMutation((body: DeptRules) => api.post<Accepted>("/hr/departments", body), [HR_ALL]);
 export const useRequestDepartmentChanges = () =>
   useHRMutation(
     (body: { department_id: string; quota?: number; base_salary?: number }[]) =>
       api.post<Created>("/hr/departments/changes", body),
-    [APPROVALS],
+    [HR_ALL],
   );
 export const useRequestWorkRules = () =>
   useHRMutation(
     ({ id, rules }: { id: string; rules: DeptRules }) => api.post<Accepted>(`/hr/departments/${id}/work-rules`, rules),
-    [APPROVALS],
+    [HR_ALL],
   );
 
 export const fetchNextEmployeeNo = () => api.get<{ employee_no: string }>("/hr/staff/next-id");
 export const useCreateStaff = () =>
   useHRMutation((body: StaffInput) => api.post<Staff>("/hr/staff", body), [["hr", "staff"], hrKeys.departments, ["hr", "attendance"]]);
 export const useRequestStaffChange = () =>
-  useHRMutation(({ id, body }: { id: string; body: StaffInput }) => api.put<Accepted>(`/hr/staff/${id}`, body), [APPROVALS]);
+  useHRMutation(({ id, body }: { id: string; body: StaffInput }) => api.put<Accepted>(`/hr/staff/${id}`, body), [HR_ALL]);
 export const useRequestResignation = () =>
-  useHRMutation((id: string) => api.post<Accepted>(`/hr/staff/${id}/resign`), [APPROVALS]);
+  useHRMutation(
+    ({ id, final_hours }: { id: string; final_hours: number | null }) => api.post<Accepted>(`/hr/staff/${id}/resign`, { final_hours }),
+    [HR_ALL],
+  );
 export const useRequestMealQuotas = () =>
   useHRMutation(
     (body: { user_id: string; meal_quota: number }[]) => api.post<Created>("/hr/staff/meal-quotas", body),
-    [APPROVALS],
+    [HR_ALL],
   );
 /** Profile photo — applies immediately (no approval). */
 async function sendPhoto(id: string, file: File) {
@@ -171,7 +209,7 @@ export const useDeleteStaffPhoto = () =>
 
 export const useUpdateBenefits = () =>
   useHRMutation(
-    ({ id, ...body }: { id: string; benefit_notes?: string; gets_service_charge?: boolean; gets_activities_bonus?: boolean }) =>
+    ({ id, ...body }: { id: string; benefit_notes?: string; gets_service_charge?: boolean }) =>
       api.patch(`/hr/staff/${id}/benefits`, body),
     [["hr", "staff"], ["hr", "service-charge"], ["hr", "payroll"]],
   );
@@ -185,7 +223,7 @@ export const useCreateLeaveRequest = () =>
   useHRMutation(
     (body: { user_id: string; leave_type_id: number; start_date: string; end_date: string; days: number; reason: string }) =>
       api.post<Accepted>("/hr/leave-requests", body),
-    [hrKeys.leaveRequests, APPROVALS],
+    [HR_ALL],
   );
 export const useSetCustomLeaveQuota = () =>
   useHRMutation((body: { user_id: string; leave_type_id: number; quota: number }) => api.put("/hr/leave-quota", body), [
@@ -195,7 +233,7 @@ export const useSetCustomLeaveQuota = () =>
 const PART_TIME: QueryKey[] = [["hr", "daily-hires"], hrKeys.dailyHireDays, ["hr", "payroll"]];
 export const useCreateDailyHire = () =>
   useHRMutation(
-    (body: { work_date: string; name: string; department_id: string; outlet_id: string | null; price_per_day: number }) =>
+    (body: { work_date: string; name: string; department_id: string; outlet_id: string | null; price_per_day: number; comment: string }) =>
       api.post("/hr/daily-hires", body),
     PART_TIME,
   );
@@ -205,26 +243,61 @@ export const useDeleteDailyHire = () => useHRMutation((id: string) => api.del(`/
 export const useDailyHireDayAction = () =>
   useHRMutation(
     ({ date, action }: { date: string; action: "submit" | "unlock" | "send-to-accounting" }) =>
-      api.post<{ approval_id?: string; messages_sent?: number }>(`/hr/daily-hire-days/${date}/${action}`),
-    [...PART_TIME, APPROVALS],
+      api.post<{ approval_id?: string; applied?: boolean; messages_sent?: number }>(`/hr/daily-hire-days/${date}/${action}`),
+    [HR_ALL],
   );
 
 export const useDecideApproval = () =>
   useHRMutation(
-    ({ id, decision }: { id: string; decision: "approved" | "denied" }) => api.post(`/hr/approvals/${id}/decide`, { decision }),
+    ({ id, decision }: { id: string; decision: "approved" | "denied" }) =>
+      api.post<{ status: "approved" | "denied" | "pending" }>(`/hr/approvals/${id}/decide`, { decision }),
     [["hr"]], // an approval can change almost anything in HR
   );
 
 export const useSaveScAllocation = () =>
   useHRMutation((body: ScAllocation[]) => api.put("/hr/service-charge/allocation", body), [["hr", "service-charge"], ["hr", "payroll"]]);
-export const useRequestActivitiesBonus = () =>
-  useHRMutation((pct: number) => api.post<Accepted>("/hr/service-charge/activities-bonus", { pct }), [
-    ["hr", "service-charge"],
-    APPROVALS,
-  ]);
 export const useSendPayroll = () =>
   useHRMutation((month: string) => api.post<{ messages_sent: number }>("/hr/payroll-live/send-to-accounting", { month }), [
     ["hr", "payroll"],
+  ]);
+export const usePayrollMonthAction = () =>
+  useHRMutation(({ month, action }: { month: string; action: "submit" | "close" }) => api.post<Accepted>(`/hr/payroll-live/${action}`, { month }), [
+    HR_ALL,
+  ]);
+
+export const useSaveOrgSettings = () => useHRMutation((body: OrgSettings) => api.put<OrgSettings>("/hr/org-settings", body), [HR_ALL]);
+export const useRequestApprovalRules = () =>
+  useHRMutation((rules: { type: string; roles: string[]; mode: string }[]) => api.put<Accepted>("/hr/approval-rules", rules), [HR_ALL]);
+export const useRequestCostLabels = () =>
+  useHRMutation((body: { department_id: string; label: string; group: string }[]) => api.put<Accepted>("/hr/cost-labels", body), [
+    HR_ALL,
+  ]);
+export const useManualClock = () =>
+  useHRMutation(
+    (body: { user_id: string; date: string; clock_in: string; clock_out: string; reason: string }) =>
+      api.post<Accepted>("/hr/manual-hours/day", body),
+    [HR_ALL],
+  );
+export const useManualTotal = () =>
+  useHRMutation(
+    (body: { user_id: string; month: string; hours_worked: number; ot_hours: number; ot_hours_daily: number; reason: string }) =>
+      api.post<Accepted>("/hr/manual-hours/total", body),
+    [HR_ALL],
+  );
+export type BonusTypeInput = Pick<
+  BonusType,
+  "name" | "kind" | "amount" | "pct" | "revenue_outlet_id" | "target_scope" | "cost_group" | "cost_line" | "target_pct" | "target_amount" | "share_pct"
+>;
+export const useCreateBonusType = () =>
+  useHRMutation((body: BonusTypeInput) => api.post<{ id: string }>("/hr/bonus-types", body), [HR_ALL]);
+export const useDeleteBonusType = () => useHRMutation((id: string) => api.del(`/hr/bonus-types/${id}`), [HR_ALL]);
+export const useCreateHoliday = () =>
+  useHRMutation((body: { name: string; days: number; valid_from: string; valid_to: string }) => api.post("/hr/public-holidays", body), [
+    HR_ALL,
+  ]);
+export const useHolidayPayout = () =>
+  useHRMutation(({ id, month }: { id: string; month: string }) => api.post<Accepted>(`/hr/public-holidays/${id}/payout`, { month }), [
+    HR_ALL,
   ]);
 
 export const useCreateBranch = () => useHRMutation((name: string) => api.post("/hr/org/branches", { name }), [hrKeys.org]);

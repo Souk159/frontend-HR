@@ -3,7 +3,8 @@
 import { Modal, StatusTag, Table, useDialogs } from "@/components/ui";
 import { lak } from "@/lib/format";
 import { useApprovalDetail, useDecideApproval } from "../api";
-import { approvalChange, approvalLabel, fmtStamp, groupByDept } from "../utils";
+import { approvalChange, approvalLabel, decisionMessage, fmtStamp, groupByDept } from "../utils";
+import { NeedsCell } from "./NeedsCell";
 
 /**
  * Detail of one HR request (prototype approvalDetailModal / ptDayDetailModal).
@@ -18,9 +19,9 @@ export function ApprovalDetailModal({ id, canDecide, onClose }: { id: string | n
   async function run(decision: "approved" | "denied") {
     if (!a) return;
     try {
-      await decide.mutateAsync({ id: a.id, decision });
+      const r = await decide.mutateAsync({ id: a.id, decision });
       onClose();
-      dialogs.success(decision === "approved" ? "Approved" : "Denied", `${approvalLabel(a.type)} for ${a.target} (${approvalChange(a)}) ${decision}.`);
+      dialogs.success(...decisionMessage(a, r.status));
     } catch (err) {
       dialogs.error("Could not complete", err);
     }
@@ -37,6 +38,12 @@ export function ApprovalDetailModal({ id, canDecide, onClose }: { id: string | n
             <span>Status</span>
             <StatusTag status={a.status} />
           </div>
+          {a.status === "pending" && (
+            <div className="stat-row">
+              <span>Needs</span>
+              <NeedsCell a={a} />
+            </div>
+          )}
           <div className="stat-row">
             <span>Change</span>
             <b style={{ fontSize: 11.5, textAlign: "right" }}>{approvalChange(a)}</b>
@@ -80,7 +87,7 @@ export function ApprovalDetailModal({ id, canDecide, onClose }: { id: string | n
               </div>
             ))}
 
-          {canDecide && a.status === "pending" && (
+          {canDecide && a.can_decide && (
             <div className="modal-actions">
               <button type="button" className="no" onClick={() => run("denied")} disabled={decide.isPending}>
                 Deny

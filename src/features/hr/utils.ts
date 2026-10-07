@@ -23,12 +23,47 @@ const APPROVAL_LABELS: Record<string, string> = {
   part_time_day: "Part-time day",
   part_time_day_change: "Part-time day change",
   activities_bonus_rate: "Activities bonus rate",
+  approval_rule_change: "Approval rule change",
+  payroll_submission: "Payroll submission",
+  close_payroll_month: "Close payroll month",
+  public_holiday_payout: "Public holiday payout",
+  hours_edit: "Working hours edit",
+  dept_cost_labels: "Department cost labels",
 };
+
+export const ROLE_LABELS: Record<string, string> = { gm: "GM", coo: "COO", ceo: "CEO", owner: "Owner", admin: "Admin" };
+export const rolesText = (roles: string[]) => roles.map((r) => ROLE_LABELS[r] ?? r).join(" / ");
+
+/** Dialog title + text after a change request: applied at once when its Approval Rule needs no approval. */
+export function requestOutcome(res: { applied?: boolean } | undefined, what: string): [string, string] {
+  return res?.applied
+    ? ["Applied", `${what} has been applied — this kind of change needs no approval (Approval Rule).`]
+    : ["Request sent", `${what} has been sent for approval. It takes effect once the roles set in Approval Rule approve it.`];
+}
+
+/** Dialog after approving / denying; "pending" = this role signed, others still have to. */
+export function decisionMessage(a: Approval, status: "approved" | "denied" | "pending"): [string, string] {
+  const what = `${approvalLabel(a.type)} for ${a.target} (${approvalChange(a)})`;
+  if (status === "pending") {
+    const signed = new Set(a.approvals.map((s) => s.role));
+    const waiting = a.required_roles.filter((r) => !signed.has(r));
+    return ["Approval recorded", `${what} still needs ${rolesText(waiting.length ? waiting : a.required_roles)} — every ticked role must approve it.`];
+  }
+  return [status === "approved" ? "Approved" : "Denied", `${what} ${status}.`];
+}
+
+/** Same for a batch: "3 sent for approval, 1 applied". */
+export function batchOutcome(res: { requests_created: number; applied?: number }, what: string): [string, string] {
+  const parts = [];
+  if (res.requests_created) parts.push(`${res.requests_created} ${what} sent for approval`);
+  if (res.applied) parts.push(`${res.applied} applied at once (no approval needed)`);
+  return [res.requests_created ? "Requests sent" : "Applied", (parts.join(", ") || "Nothing changed") + "."];
+}
 export const approvalLabel = (type: string) => APPROVAL_LABELS[type] ?? type;
 
 /** "₭3,200,000 → ₭3,500,000" / "3 → 4" / "old → new" (prototype change column) */
 export function approvalChange(a: Approval): string {
-  const fmt = (v: string) => (a.value_format === "currency" ? lak(Number(v)).replace(" ", "") : v);
+  const fmt = (v: string) => (a.value_format === "currency" && v.trim() !== "" && !isNaN(Number(v)) ? lak(Number(v)).replace(" ", "") : v);
   return `${fmt(a.old_value)} → ${fmt(a.new_value)}`;
 }
 
