@@ -8,6 +8,7 @@ import { LangToggle, useLang } from "@/lib/i18n";
 import { DataState } from "@/components/ui";
 import { useApprovals, useHRAccess } from "@/features/hr/api";
 import { allowedNav, NAV_GROUPS } from "@/features/hr/nav";
+import { ChangePasswordModal } from "@/features/hr/components/ChangePasswordModal";
 
 /** Topbar + grouped left sidebar of the HR module; screens are filtered by role / coordinator grants. */
 export function HRShell({ children }: { children: ReactNode }) {
@@ -21,6 +22,7 @@ export function HRShell({ children }: { children: ReactNode }) {
   const pendingCount = pending.data?.length ?? 0;
   // phones: the sidebar folds into a "Menu" button
   const [menuOpen, setMenuOpen] = useState(false);
+  const [pwOpen, setPwOpen] = useState(false);
   const current = nav.find((n) => pathname.startsWith(n.href));
 
   // /hr → first tab this user may open; a tab they may not open → first allowed
@@ -51,14 +53,16 @@ export function HRShell({ children }: { children: ReactNode }) {
         <div className="right">
           <LangToggle />
           {user && (
-            <div className="staff-chip">
+            <button type="button" className="staff-chip" onClick={() => setPwOpen(true)} title={t("change_password")}>
               <span className="avatar">{user.slice(0, 2)}</span>
               {user}
               <span className="c-gold" style={{ fontSize: 10.5, color: "var(--gold-light)" }}>
                 {access.data?.role}
               </span>
-            </div>
+              <span aria-hidden style={{ fontSize: 11, opacity: 0.8 }}>🔒</span>
+            </button>
           )}
+          <ChangePasswordModal open={pwOpen} onClose={() => setPwOpen(false)} />
           <button type="button" className="back-link" onClick={signOut}>
             {t("sign_out")} →
           </button>

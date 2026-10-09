@@ -1,10 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { DataState, EmptyRow, Field, Lede, SectionHead, Table, useDialogs } from "@/components/ui";
+import { DataState, EmptyRow, Field, Lede, Modal, SectionHead, Table, useDialogs } from "@/components/ui";
 import { useLang } from "@/lib/i18n";
 import { fmtMonth, lak, num, thisMonth } from "@/lib/format";
-import { useBonusTypes, useCostLines, useCreateBonusType, useDeleteBonusType, useOutlets, type BonusTypeInput } from "@/features/hr/api";
+import {
+  useBonusTypes,
+  useCostLines,
+  useCreateBonusType,
+  useDeleteBonusType,
+  useOutlets,
+  useUpdateBonusType,
+  type BonusTypeInput,
+} from "@/features/hr/api";
 import type { BonusKind, BonusType } from "@/features/hr/types";
 
 /** Prototype v168 hr-bonustypes — replaces the activities bonus. */
@@ -12,6 +20,7 @@ export default function BonusTypesPage() {
   const { t } = useLang();
   const [month, setMonth] = useState(thisMonth());
   const list = useBonusTypes(month);
+  const [editing, setEditing] = useState<BonusType | null>(null);
   return (
     <div className="subview">
       <SectionHead title={t("sh_bonus_types")} />
@@ -20,7 +29,7 @@ export default function BonusTypesPage() {
         each employee&apos;s profile (Employee Directory → Edit); HR must tick it per person before it&apos;s included in Payroll.
         Percentage and target bonuses are pooled and split evenly across everyone ticked for that bonus.
       </Lede>
-      <NewBonusForm />
+      <BonusForm />
       <Field label="Show pools for" style={{ maxWidth: 220 }}>
         <input type="month" value={month} onChange={(e) => e.target.value && setMonth(e.target.value)} />
       </Field>
@@ -28,10 +37,13 @@ export default function BonusTypesPage() {
         <Table head={["Bonus name", "Kind / rule", `Pool — ${fmtMonth(month)}`, "Employees ticked", ""]}>
           {(list.data ?? []).length === 0 && <EmptyRow cols={5}>No bonus types created yet.</EmptyRow>}
           {list.data?.map((b) => (
-            <BonusRow key={b.id} b={b} />
+            <BonusRow key={b.id} b={b} onEdit={() => setEditing(b)} />
           ))}
         </Table>
       </DataState>
+      <Modal open={editing !== null} onClose={() => setEditing(null)} title={`Edit bonus — ${editing?.name ?? ""}`} wide>
+        {editing && <BonusForm key={editing.id} editing={editing} onDone={() => setEditing(null)} />}
+      </Modal>
     </div>
   );
 }
@@ -50,7 +62,7 @@ function describeBonus(b: BonusType): string {
   }
 }
 
-function BonusRow({ b }: { b: BonusType }) {
+function BonusRow({ b, onEdit }: { b: BonusType; onEdit: () => void }) {
   const dialogs = useDialogs();
   const del = useDeleteBonusType();
   const count = b.employee_ids.length;
@@ -89,9 +101,14 @@ function BonusRow({ b }: { b: BonusType }) {
       <td className="mono">{pool}</td>
       <td className="mono">{count}</td>
       <td>
-        <button type="button" className="mini-btn flag" onClick={remove} disabled={del.isPending}>
-          🗑 Delete
-        </button>
+        <span style={{ whiteSpace: "nowrap" }}>
+          <button type="button" className="mini-btn" onClick={onEdit}>
+            ✏️ Edit
+          </button>
+          <button type="button" className="mini-btn flag" onClick={remove} disabled={del.isPending}>
+            🗑 Delete
+          </button>
+        </span>
       </td>
     </tr>
   );
@@ -102,12 +119,21 @@ const empty = {
   group: "F&B", line: "", targetPct: "", targetAmount: "", share: "100",
 };
 
-function NewBonusForm() {
+const fromBonus = (b: BonusType) => ({
+  name: b.name, kind: b.kind, amount: b.amount ? String(b.amount) : "", pct: b.pct ? String(b.pct) : "",
+  outlet: b.revenue_outlet_id ?? "", scope: (b.target_scope || "cogs") as "cogs" | "overhead", group: b.cost_group || "F&B",
+  line: b.cost_line, targetPct: b.target_pct ? String(b.target_pct) : "", targetAmount: b.target_amount ? String(b.target_amount) : "",
+  share: String(b.share_pct || 100),
+});
+
+/** Create a bonus type, or edit one (editing). Employees who have it ticked keep it after an edit. */
+function BonusForm({ editing, onDone }: { editing?: BonusType; onDone?: () => void }) {
   const dialogs = useDialogs();
   const create = useCreateBonusType();
+  const update = useUpdateBonusType();
   const outlets = useOutlets();
   const lines = useCostLines();
-  const [f, setF] = useState(empty);
+  const [f, setF] = useState(() => (editing ? fromBonus(editing) : empty));
   const set = (k: keyof typeof empty) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.value });
   const lineOptions = (lines.data?.lines ?? [])
     .filter((l) => (f.scope === "overhead" ? l.cost_type === "overhead" : l.cost_type === "cogs" && l.group === f.group))
@@ -124,16 +150,22 @@ function NewBonusForm() {
     };
     if (f.kind === "percent" && !body.revenue_outlet_id) return dialogs.error("No revenue stream", new Error("There is no outlet to base this bonus on yet."));
     try {
+      if (editing) {
+        await update.mutateAsync({ id: editing.id, body });
+        onDone?.();
+        dialogs.success("Bonus type saved", `"${body.name}" is updated — everyone who has it ticked keeps it.`);
+        return;
+      }
       await create.mutateAsync(body);
       setF(empty);
       dialogs.success("Bonus type created", `"${body.name}" is now available as a tick box in each employee's profile — nobody has it ticked yet.`);
     } catch (err) {
-      dialogs.error("Could not create", err);
+      dialogs.error(editing ? "Could not save" : "Could not create", err);
     }
   }
 
   return (
-    <div className="card">
+    <div className={editing ? undefined : "card"}>
       <div className="land-row">
         <Field label="Bonus name">
           <input value={f.name} onChange={set("name")} placeholder="e.g. New Year bonus" />
@@ -189,8 +221,8 @@ function NewBonusForm() {
               </Field>
             )}
             <Field label={f.scope === "cogs" ? "Line" : "Overhead line"} hint="The cost message category, e.g. Food cost">
-              <input list="bonus-lines" value={f.line} onChange={set("line")} placeholder="e.g. Food cost" />
-              <datalist id="bonus-lines">
+              <input list={editing ? "bonus-lines-edit" : "bonus-lines"} value={f.line} onChange={set("line")} placeholder="e.g. Food cost" />
+              <datalist id={editing ? "bonus-lines-edit" : "bonus-lines"}>
                 {lineOptions.map((l) => (
                   <option key={l} value={l} />
                 ))}
@@ -217,8 +249,8 @@ function NewBonusForm() {
           </p>
         </>
       )}
-      <button type="button" className="add-line-btn" style={{ marginTop: 8 }} onClick={submit} disabled={create.isPending}>
-        + Create bonus type
+      <button type="button" className="add-line-btn" style={{ marginTop: 8 }} onClick={submit} disabled={create.isPending || update.isPending}>
+        {editing ? "💾 Save bonus type" : "+ Create bonus type"}
       </button>
     </div>
   );

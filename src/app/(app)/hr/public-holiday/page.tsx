@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { DataState, Field, Lede, SectionHead, Tag, useDialogs } from "@/components/ui";
+import { DataState, Field, Lede, Modal, SectionHead, Tag, useDialogs } from "@/components/ui";
 import { useLang } from "@/lib/i18n";
 import { fmtDate, fmtMonth, lak, thisMonth } from "@/lib/format";
-import { useCreateHoliday, useHolidayPayout, usePublicHolidays } from "@/features/hr/api";
+import { useCreateHoliday, useDeleteHoliday, useHolidayPayout, usePublicHolidays, useUpdateHoliday } from "@/features/hr/api";
 import type { PublicHoliday } from "@/features/hr/types";
 import { requestOutcome } from "@/features/hr/utils";
 
@@ -79,7 +79,18 @@ function NewHolidayForm() {
 function HolidayCard({ h }: { h: PublicHoliday }) {
   const dialogs = useDialogs();
   const payout = useHolidayPayout();
+  const del = useDeleteHoliday();
   const [month, setMonth] = useState(thisMonth());
+  const [editing, setEditing] = useState(false);
+
+  async function remove() {
+    if (!window.confirm(`Delete ${h.name}? It is removed from Leave Quota and Leave Requests. Only possible while nobody has taken it.`)) return;
+    try {
+      await del.mutateAsync(h.id);
+    } catch (err) {
+      dialogs.error("Could not delete", err);
+    }
+  }
 
   async function pay() {
     if (!window.confirm(`Add the unused days of ${h.name} to ${fmtMonth(month)}'s pay for ${h.unused_count} employee(s), about ${lak(h.unused_value)} in total?`)) return;
@@ -99,7 +110,20 @@ function HolidayCard({ h }: { h: PublicHoliday }) {
         <h3 style={{ fontSize: 14, margin: 0 }}>{h.name}</h3>
         {h.paid_out_month ? <Tag kind="ok">✓ Added to salary — {fmtMonth(h.paid_out_month)}</Tag> : windowTag}
         {h.payout_pending && <Tag kind="pending">Payout awaiting approval</Tag>}
+        {!h.paid_out_month && (
+          <span style={{ marginLeft: "auto", whiteSpace: "nowrap" }}>
+            <button type="button" className="mini-btn" onClick={() => setEditing(true)}>
+              ✏️ Edit
+            </button>
+            <button type="button" className="mini-btn flag" onClick={remove} disabled={del.isPending}>
+              🗑 Delete
+            </button>
+          </span>
+        )}
       </div>
+      <Modal open={editing} onClose={() => setEditing(false)} title={`Edit holiday — ${h.name}`}>
+        {editing && <EditHolidayForm h={h} onDone={() => setEditing(false)} />}
+      </Modal>
       <p className="hint">
         {h.days} day{h.days > 1 ? "s" : ""} · valid {fmtDate(h.valid_from)} – {fmtDate(h.valid_to)} · also a Leave Type, so it&apos;s in every
         employee&apos;s Leave Quota and pickable from Leave Requests.
@@ -124,5 +148,41 @@ function HolidayCard({ h }: { h: PublicHoliday }) {
         </>
       )}
     </div>
+  );
+}
+
+function EditHolidayForm({ h, onDone }: { h: PublicHoliday; onDone: () => void }) {
+  const dialogs = useDialogs();
+  const update = useUpdateHoliday();
+  const [f, setF] = useState({ name: h.name, days: String(h.days), from: h.valid_from, to: h.valid_to });
+  async function submit() {
+    try {
+      await update.mutateAsync({ id: h.id, name: f.name.trim(), days: parseInt(f.days) || 0, valid_from: f.from, valid_to: f.to });
+      onDone();
+      dialogs.success("Saved", `${f.name.trim()} updated — everyone's Leave Quota follows the new number of days.`);
+    } catch (err) {
+      dialogs.error("Could not save", err);
+    }
+  }
+  return (
+    <>
+      <Field label="Holiday name">
+        <input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} maxLength={50} />
+      </Field>
+      <div className="land-row">
+        <Field label="Days">
+          <input type="number" min={1} max={30} value={f.days} onChange={(e) => setF({ ...f, days: e.target.value })} style={{ width: 80 }} />
+        </Field>
+        <Field label="Valid from">
+          <input type="date" value={f.from} onChange={(e) => setF({ ...f, from: e.target.value })} />
+        </Field>
+        <Field label="Valid to">
+          <input type="date" value={f.to} min={f.from || undefined} onChange={(e) => setF({ ...f, to: e.target.value })} />
+        </Field>
+      </div>
+      <button type="button" className="submit-btn" onClick={submit} disabled={update.isPending}>
+        💾 Save holiday
+      </button>
+    </>
   );
 }

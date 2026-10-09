@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient, type QueryKey } from "@tanstack/
 import { ApiError, api } from "@/lib/api";
 import type {
   Accepted,
+  Account,
+  PropertyAdmin,
   Approval,
   ApprovalRule,
   Attendance,
@@ -63,6 +65,9 @@ export const hrKeys = {
   bonusTypes: (month: string) => ["hr", "bonus-types", month] as const,
   costLines: ["hr", "cost-lines"] as const,
   holidays: ["hr", "public-holidays"] as const,
+  accounts: ["hr", "accounts"] as const,
+  propertiesAll: ["hr", "properties", "all"] as const,
+  scannerSettings: ["hr", "scanner-settings"] as const,
 };
 
 // ── Queries ──────────────────────────────────────────────────────────────────
@@ -144,6 +149,16 @@ export const useBonusTypes = (month: string, enabled = true) =>
     enabled,
   });
 export const useCostLines = () => useQuery({ queryKey: hrKeys.costLines, queryFn: () => api.get<CostLines>("/hr/cost-lines") });
+export const useAccounts = (enabled = true) =>
+  useQuery({
+    queryKey: hrKeys.accounts,
+    queryFn: () => api.get<{ accounts: Account[]; assignable_roles: string[] }>("/hr/accounts"),
+    enabled,
+  });
+export const useAllProperties = (enabled = true) =>
+  useQuery({ queryKey: hrKeys.propertiesAll, queryFn: () => api.get<PropertyAdmin[]>("/hr/properties/all"), enabled });
+export const useScannerSettings = () =>
+  useQuery({ queryKey: hrKeys.scannerSettings, queryFn: () => api.get<{ adms_server: string }>("/hr/scanner-settings") });
 export const usePublicHolidays = () =>
   useQuery({ queryKey: hrKeys.holidays, queryFn: () => api.get<PublicHoliday[]>("/hr/public-holidays") });
 
@@ -337,3 +352,48 @@ export const useCreateProperty = () =>
   useHRMutation((name: string) => api.post<Property>("/hr/properties", { name }), PROPERTY_USERS);
 export const useRenameProperty = () =>
   useHRMutation(({ id, name }: { id: string; name: string }) => api.patch<Property>(`/hr/properties/${id}`, { name }), PROPERTY_USERS);
+
+// ── Edit / remove (settings that could only be created before) ──────────────
+export const useCreateAccount = () =>
+  useHRMutation(
+    (body: { username: string; full_name: string; role: string; password: string; employee_user_id: string | null }) =>
+      api.post<{ id: string }>("/hr/accounts", body),
+    [hrKeys.accounts, ["hr", "staff"]],
+  );
+export const useUpdateAccount = () =>
+  useHRMutation(
+    ({ id, ...body }: { id: string; full_name?: string; role?: string; is_active?: boolean }) => api.patch(`/hr/accounts/${id}`, body),
+    [hrKeys.accounts],
+  );
+export const useResetAccountPassword = () =>
+  useHRMutation(({ id, password }: { id: string; password: string }) => api.post(`/hr/accounts/${id}/password`, { password }), []);
+export const useChangeOwnPassword = () =>
+  useHRMutation(
+    (body: { current_password: string; new_password: string }) => api.post("/auth/change-password", body),
+    [],
+  );
+export const useRequestDepartmentEdit = () =>
+  useHRMutation(({ id, ...body }: { id: string; name?: string; close?: boolean }) => api.patch<Accepted>(`/hr/departments/${id}`, body), [
+    HR_ALL,
+  ]);
+export const useUpdateLeaveType = () =>
+  useHRMutation(({ id, ...body }: { id: number; name: string; default_quota: number }) => api.patch(`/hr/leave-types/${id}`, body), [
+    HR_ALL,
+  ]);
+export const useDeleteLeaveType = () => useHRMutation((id: number) => api.del(`/hr/leave-types/${id}`), [HR_ALL]);
+export const useUpdateBonusType = () =>
+  useHRMutation(({ id, body }: { id: string; body: BonusTypeInput }) => api.put(`/hr/bonus-types/${id}`, body), [HR_ALL]);
+export const useUpdateHoliday = () =>
+  useHRMutation(
+    ({ id, ...body }: { id: string; name: string; days: number; valid_from: string; valid_to: string }) =>
+      api.put(`/hr/public-holidays/${id}`, body),
+    [HR_ALL],
+  );
+export const useDeleteHoliday = () => useHRMutation((id: string) => api.del(`/hr/public-holidays/${id}`), [HR_ALL]);
+export const useDeleteScanner = () => useHRMutation((id: string) => api.del(`/hr/scanners/${id}`), [hrKeys.scanners, hrKeys.propertiesAll]);
+export const useSaveScannerSettings = () =>
+  useHRMutation((adms_server: string) => api.put<{ adms_server: string }>("/hr/scanner-settings", { adms_server }), [hrKeys.scannerSettings]);
+export const useSetPropertyActive = () =>
+  useHRMutation(({ id, is_active }: { id: string; is_active: boolean }) => api.patch(`/hr/properties/${id}/active`, { is_active }), [
+    ["hr", "properties"],
+  ]);

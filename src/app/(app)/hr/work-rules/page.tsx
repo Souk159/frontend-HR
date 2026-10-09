@@ -5,7 +5,7 @@ import Link from "next/link";
 import { DataState, Field, Lede, SectionHead, useDialogs } from "@/components/ui";
 import { useLang } from "@/lib/i18n";
 import { num } from "@/lib/format";
-import { useDepartments, useOrgSettings, useRequestWorkRules, useSaveOrgSettings } from "@/features/hr/api";
+import { useDepartments, useOrgSettings, useRequestDepartmentEdit, useRequestWorkRules, useSaveOrgSettings } from "@/features/hr/api";
 import type { Department, OrgSettings } from "@/features/hr/types";
 import { requestOutcome } from "@/features/hr/utils";
 
@@ -129,7 +129,7 @@ function RulesCard({ dept, calcDays }: { dept: Department; calcDays: number }) {
 
   return (
     <div className="card">
-      <h3 style={{ fontSize: 14 }}>{dept.name}</h3>
+      <DeptHeader dept={dept} />
       <div className="land-row">
         <Field label="Hours per day">
           <input value={f.hours} onChange={set("hours")} />
@@ -158,6 +158,61 @@ function RulesCard({ dept, calcDays }: { dept: Department; calcDays: number }) {
         hours pass this; &quot;OT within the day&quot; applies to extra hours on a single day that are still inside this monthly limit.
         Hourly rate = base salary ÷ {calcDays} ÷ {num(hours)}h. Annual/sick leave here sets the default for employees in this department.
       </p>
+    </div>
+  );
+}
+
+/** Rename or close a department (per the Approval Rule "Renaming or closing a department"). */
+function DeptHeader({ dept }: { dept: Department }) {
+  const dialogs = useDialogs();
+  const edit = useRequestDepartmentEdit();
+  const [renaming, setRenaming] = useState(false);
+  const [name, setName] = useState(dept.name);
+
+  async function run(body: { name?: string; close?: boolean }, what: string) {
+    try {
+      const res = await edit.mutateAsync({ id: dept.id, ...body });
+      setRenaming(false);
+      dialogs.success(...requestOutcome(res, what));
+    } catch (err) {
+      dialogs.error("Could not send request", err);
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+      {renaming ? (
+        <>
+          <input className="inline-input" value={name} onChange={(e) => setName(e.target.value)} autoFocus style={{ minWidth: 220 }} />
+          <button type="button" className="mini-btn" disabled={edit.isPending || !name.trim() || name.trim() === dept.name}
+            onClick={() => run({ name: name.trim() }, `Renaming ${dept.name} to ${name.trim()}`)}>
+            Save name
+          </button>
+          <button type="button" className="mini-btn" onClick={() => (setRenaming(false), setName(dept.name))}>
+            Cancel
+          </button>
+        </>
+      ) : (
+        <>
+          <h3 style={{ fontSize: 14, margin: 0 }}>{dept.name}</h3>
+          <button type="button" className="mini-btn" onClick={() => setRenaming(true)}>
+            ✏️ Rename
+          </button>
+          <button
+            type="button"
+            className="mini-btn flag"
+            disabled={edit.isPending}
+            title={dept.filled > 0 ? "Move its employees to another department first" : undefined}
+            onClick={() => {
+              if (dept.filled > 0)
+                return dialogs.error("Department not empty", new Error(`${dept.name} still has ${dept.filled} employee(s) — move them to another department first.`));
+              if (window.confirm(`Close ${dept.name}? It disappears from every list once approved.`)) run({ close: true }, `Closing ${dept.name}`);
+            }}
+          >
+            Close department
+          </button>
+        </>
+      )}
     </div>
   );
 }

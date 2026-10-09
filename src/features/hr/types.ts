@@ -27,7 +27,23 @@ export type HRAccess = {
   tabs: HRTab[];
   can_approve: boolean;
   can_manage_access: boolean;
+  /** owner / admin / GM: the User Accounts screen */
+  can_manage_accounts: boolean;
 };
+
+export type Account = {
+  id: string;
+  username: string;
+  full_name: string;
+  role: string;
+  is_active: boolean;
+  /** the login belongs to this employee in the Directory */
+  employee_no: string;
+  editable: boolean;
+  is_self: boolean;
+};
+
+export type PropertyAdmin = { id: string; name: string; is_active: boolean; employees: number; scanners: number };
 
 export type Department = {
   id: string;
@@ -175,7 +191,7 @@ export type Attendance = {
   is_manual: boolean;
 };
 
-export type LeaveType = { id: number; name: string; default_quota: number; is_paid: boolean };
+export type LeaveType = { id: number; name: string; default_quota: number; is_paid: boolean; is_holiday: boolean };
 export type LeaveRequest = {
   id: string;
   user_id: string;

@@ -4,7 +4,16 @@ import { useState } from "react";
 import { DataState, EmptyRow, Field, Lede, SectionHead, StatusTag, Table, useDialogs } from "@/components/ui";
 import { useLang } from "@/lib/i18n";
 import { daysUntil, fmtDate, num, today } from "@/lib/format";
-import { useCreateLeaveRequest, useCreateLeaveType, useLeaveRequests, useLeaveTypes, useStaff } from "@/features/hr/api";
+import {
+  useCreateLeaveRequest,
+  useCreateLeaveType,
+  useDeleteLeaveType,
+  useLeaveRequests,
+  useLeaveTypes,
+  useStaff,
+  useUpdateLeaveType,
+} from "@/features/hr/api";
+import type { LeaveType } from "@/features/hr/types";
 import { requestOutcome } from "@/features/hr/utils";
 
 /** Calendar days between two dates, inclusive. */
@@ -119,10 +128,11 @@ export default function LeavePage() {
             </button>
           </div>
           <p className="hint">Creates a matching quota column for every employee in Leave Quota — editable per person there.</p>
+          <LeaveTypesTable />
         </div>
       )}
       <button type="button" className="mini-btn" style={{ marginBottom: 12 }} onClick={() => setShowType((v) => !v)}>
-        + Create new leave type
+        {showType ? "Close leave types" : "+ Create / edit leave types"}
       </button>
 
       <DataState loading={requests.isLoading} error={requests.error}>
@@ -143,5 +153,70 @@ export default function LeavePage() {
         </Table>
       </DataState>
     </div>
+  );
+}
+
+/** Custom leave types: rename, change the default quota, delete one nobody has used. */
+function LeaveTypesTable() {
+  const types = useLeaveTypes();
+  const custom = (types.data ?? []).filter((t) => t.name !== "Annual leave" && t.name !== "Sick leave" && !t.is_holiday);
+  if (custom.length === 0) return null;
+  return (
+    <>
+      <h3 style={{ fontSize: 13, marginTop: 14 }}>Custom leave types</h3>
+      <Table head={["Name", "Default quota (days/yr)", ""]}>
+        {custom.map((t) => (
+          <LeaveTypeRow key={`${t.id}:${t.name}:${t.default_quota}`} t={t} />
+        ))}
+      </Table>
+      <p className="hint">Annual and sick leave are set in Work Rules; public holidays on the Public Holiday tab.</p>
+    </>
+  );
+}
+
+function LeaveTypeRow({ t }: { t: LeaveType }) {
+  const dialogs = useDialogs();
+  const update = useUpdateLeaveType();
+  const del = useDeleteLeaveType();
+  const [name, setName] = useState(t.name);
+  const [quota, setQuota] = useState(String(t.default_quota));
+  const dirty = name.trim() !== t.name || (parseInt(quota) || 0) !== t.default_quota;
+  return (
+    <tr>
+      <td>
+        <input className="inline-input" value={name} onChange={(e) => setName(e.target.value)} />
+      </td>
+      <td>
+        <input className="inline-input" style={{ width: 70 }} value={quota} onChange={(e) => setQuota(e.target.value.replace(/\D/g, ""))} />
+      </td>
+      <td style={{ whiteSpace: "nowrap" }}>
+        {dirty && (
+          <button
+            type="button"
+            className="mini-btn"
+            disabled={update.isPending}
+            onClick={() =>
+              update
+                .mutateAsync({ id: t.id, name: name.trim(), default_quota: parseInt(quota) || 0 })
+                .then(() => dialogs.success("Saved", `Leave type "${name.trim()}" updated.`))
+                .catch((err) => dialogs.error("Could not save", err))
+            }
+          >
+            Save
+          </button>
+        )}
+        <button
+          type="button"
+          className="mini-btn flag"
+          disabled={del.isPending}
+          onClick={() => {
+            if (!window.confirm(`Delete the leave type "${t.name}"? Only possible if nobody has used it.`)) return;
+            del.mutateAsync(t.id).catch((err) => dialogs.error("Could not delete", err));
+          }}
+        >
+          🗑 Delete
+        </button>
+      </td>
+    </tr>
   );
 }

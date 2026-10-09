@@ -31,7 +31,12 @@ const APPROVAL_LABELS: Record<string, string> = {
   dept_cost_labels: "Department cost labels",
 };
 
-export const ROLE_LABELS: Record<string, string> = { gm: "GM", coo: "COO", ceo: "CEO", owner: "Owner", admin: "Admin" };
+export const ROLE_LABELS: Record<string, string> = {
+  gm: "GM", coo: "COO", ceo: "CEO", owner: "Owner", admin: "Admin",
+  hr_manager: "HR Manager", hr_coordinator: "HR Coordinator",
+  cashier: "Cashier", cashier_manager: "Cashier Manager", kitchen: "Kitchen", fnb_manager: "F&B Manager",
+  inventory: "Inventory", accountant: "Accountant", assistant: "Assistant", front_office: "Front Office",
+};
 export const rolesText = (roles: string[]) => roles.map((r) => ROLE_LABELS[r] ?? r).join(" / ");
 
 /** Dialog title + text after a change request: applied at once when its Approval Rule needs no approval. */

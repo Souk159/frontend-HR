@@ -9,7 +9,7 @@ type NavItem = {
   icon: string;
   group: NavGroup;
   /** a granted HR tab, or a capability flag from /hr/me */
-  needs: HRTab | "can_approve" | "can_manage_access";
+  needs: HRTab | "can_approve" | "can_manage_access" | "can_manage_accounts";
 };
 
 /** Sidebar sections, in display order. */
@@ -45,6 +45,7 @@ export const HR_NAV: NavItem[] = [
   { href: "/hr/approval-history", label: "tb_approval_history", icon: "🗂️", group: "settings", needs: "approval_history" },
   { href: "/hr/approval-rule", label: "tb_approval_rule", icon: "⚖️", group: "settings", needs: "approval_rule" },
   { href: "/hr/work-rules", label: "tb_work_rules", icon: "⏱️", group: "settings", needs: "work_rules" },
+  { href: "/hr/accounts", label: "tb_accounts", icon: "👤", group: "settings", needs: "can_manage_accounts" },
   { href: "/hr/access", label: "tb_hr_access", icon: "🔑", group: "settings", needs: "can_manage_access" },
   { href: "/hr/scanners", label: "tb_scanners", icon: "📟", group: "settings", needs: "can_manage_access" },
 ];
@@ -56,6 +57,8 @@ export function allowedNav(access: HRAccess | undefined): NavItem[] {
       ? access.can_approve
       : n.needs === "can_manage_access"
         ? access.can_manage_access
-        : access.tabs.includes(n.needs),
+        : n.needs === "can_manage_accounts"
+          ? access.can_manage_accounts
+          : access.tabs.includes(n.needs),
   );
 }
