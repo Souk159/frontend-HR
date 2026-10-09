@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { LangToggle, useLang } from "@/lib/i18n";
 import { DataState } from "@/components/ui";
 import { useApprovals, useHRAccess } from "@/features/hr/api";
-import { allowedNav } from "@/features/hr/nav";
+import { allowedNav, NAV_GROUPS } from "@/features/hr/nav";
 
-/** Topbar + sub-tab bar of the HR module; tabs are filtered by role / coordinator grants. */
+/** Topbar + grouped left sidebar of the HR module; screens are filtered by role / coordinator grants. */
 export function HRShell({ children }: { children: ReactNode }) {
   const { t } = useLang();
   const pathname = usePathname();
@@ -19,6 +19,9 @@ export function HRShell({ children }: { children: ReactNode }) {
   const nav = allowedNav(access.data);
   const pending = useApprovals("pending", !!access.data?.can_approve);
   const pendingCount = pending.data?.length ?? 0;
+  // phones: the sidebar folds into a "Menu" button
+  const [menuOpen, setMenuOpen] = useState(false);
+  const current = nav.find((n) => pathname.startsWith(n.href));
 
   // /hr → first tab this user may open; a tab they may not open → first allowed
   useEffect(() => {
@@ -69,15 +72,39 @@ export function HRShell({ children }: { children: ReactNode }) {
           </DataState>
         </div>
       ) : (
-        <>
-          <nav className="subtab-bar">
-            {nav.map((n) => (
-              <Link key={n.href} href={n.href} className={pathname.startsWith(n.href) ? "active" : ""}>
-                {t(n.label)}
-                {n.href === "/hr/approvals" && pendingCount > 0 && <span className="tab-badge">{pendingCount}</span>}
-              </Link>
-            ))}
+        <div className="hr-body">
+          <button type="button" className="side-toggle" onClick={() => setMenuOpen((v) => !v)} aria-expanded={menuOpen}>
+            ☰ {t("menu")}
+            {current && <b>· {t(current.label)}</b>}
+            {pendingCount > 0 && <span className="side-badge">{pendingCount}</span>}
+          </button>
+          <nav className={`side-nav${menuOpen ? " open" : ""}`} aria-label="HR">
+            {NAV_GROUPS.map((g) => {
+              const items = nav.filter((n) => n.group === g.id);
+              if (items.length === 0) return null;
+              return (
+                <div className="side-group" key={g.id}>
+                  <div className="side-group-label">{t(g.label)}</div>
+                  {items.map((n) => (
+                    <Link
+                      key={n.href}
+                      href={n.href}
+                      className={pathname.startsWith(n.href) ? "active" : ""}
+                      aria-current={pathname.startsWith(n.href) ? "page" : undefined}
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <span className="side-icon" aria-hidden>
+                        {n.icon}
+                      </span>
+                      <span className="side-label">{t(n.label)}</span>
+                      {n.href === "/hr/approvals" && pendingCount > 0 && <span className="side-badge">{pendingCount}</span>}
+                    </Link>
+                  ))}
+                </div>
+              );
+            })}
           </nav>
+          <main className="hr-main">
           {access.isLoading ? (
             <div className="subview">
               <DataState loading error={null}>
@@ -91,7 +118,8 @@ export function HRShell({ children }: { children: ReactNode }) {
           ) : (
             children
           )}
-        </>
+          </main>
+        </div>
       )}
     </>
   );
