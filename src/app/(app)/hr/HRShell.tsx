@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { LangToggle, useLang, tr } from "@/lib/i18n";
 import { DataState } from "@/components/ui";
 import { useApprovals, useHRAccess } from "@/features/hr/api";
-import { allowedNav, homeHref, NAV_GROUPS } from "@/features/hr/nav";
+import { allowedNav, homeHref, NAV_GROUPS, onPage } from "@/features/hr/nav";
 import { ChangePasswordModal } from "@/features/hr/components/ChangePasswordModal";
 
 /** Topbar + grouped left sidebar of the HR module; screens are filtered by role / coordinator grants. */
@@ -23,12 +23,12 @@ export function HRShell({ children }: { children: ReactNode }) {
   // phones: the sidebar folds into a "Menu" button
   const [menuOpen, setMenuOpen] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
-  const current = nav.find((n) => pathname.startsWith(n.href));
+  const current = nav.find((n) => onPage(pathname, n.href));
 
   // /hr → the user's home (COO/CEO: Overview, others: first tab); a tab they may not open → home too
   useEffect(() => {
     if (!access.data || nav.length === 0) return;
-    if (!nav.some((n) => pathname.startsWith(n.href))) router.replace(homeHref(access.data, nav));
+    if (!nav.some((n) => onPage(pathname, n.href))) router.replace(homeHref(access.data, nav));
   }, [access.data, nav, pathname, router]);
 
   async function signOut() {
@@ -93,8 +93,8 @@ export function HRShell({ children }: { children: ReactNode }) {
                     <Link
                       key={n.href}
                       href={n.href}
-                      className={pathname.startsWith(n.href) ? "active" : ""}
-                      aria-current={pathname.startsWith(n.href) ? "page" : undefined}
+                      className={onPage(pathname, n.href) ? "active" : ""}
+                      aria-current={onPage(pathname, n.href) ? "page" : undefined}
                       onClick={() => setMenuOpen(false)}
                     >
                       <span className="side-icon" aria-hidden>

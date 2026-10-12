@@ -50,6 +50,9 @@ export const HR_NAV: NavItem[] = [
   { href: "/hr/scanners", label: "tb_scanners", icon: "📟", group: "settings", needs: "can_manage_access" },
 ];
 
+/** True when the path is this screen or a page under it — "/hr/leave" must not match "/hr/leave-quota". */
+export const onPage = (pathname: string, href: string) => pathname === href || pathname.startsWith(href + "/");
+
 /** Roles that land on the HR Overview dashboard after signing in. */
 const OVERVIEW_FIRST = ["coo", "ceo"];
 
