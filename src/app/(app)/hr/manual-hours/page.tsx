@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { DataState, EmptyRow, Field, Lede, SectionHead, Table, useDialogs } from "@/components/ui";
-import { useLang } from "@/lib/i18n";
+import { useLang, tr } from "@/lib/i18n";
 import { fmtMonth, num, thisMonth, today } from "@/lib/format";
 import { useManualClock, useManualHours, useManualTotal } from "@/features/hr/api";
 import type { ManualHours } from "@/features/hr/types";
@@ -17,23 +17,20 @@ export default function ManualHoursPage() {
     <div className="subview">
       <SectionHead title={t("sh_manual_hours")} />
       <Lede>
-        For when the fingerprint scanner is down and someone&apos;s hours didn&apos;t get logged. Use &quot;Clock in / out for a day&quot;
-        for a single missed day — it counts like a scan for that day. Use &quot;Set total hours directly&quot; to correct the whole
-        month&apos;s total at once. Either way it updates Payroll (unless the Approval Rule asks for sign-off first); the month&apos;s Payroll
-        still needs its own approval before it&apos;s sent to the Accountant. A closed payroll month can&apos;t be corrected.
+        {tr("For when the fingerprint scanner is down and someone's hours didn't get logged. Use \"Clock in / out for a day\" for a single missed day — it counts like a scan for that day. Use \"Set total hours directly\" to correct the whole month's total at once. Either way it updates Payroll (unless the Approval Rule asks for sign-off first); the month's Payroll still needs its own approval before it's sent to the Accountant. A closed payroll month can't be corrected.", "ໃຊ້ເມື່ອເຄື່ອງສະແກນເສຍ ຫຼື ພະນັກງານລືມສະແກນ. ໃຊ້ \"ໃສ່ເວລາເຂົ້າ / ອອກ ຂອງ 1 ມື້\" ສຳລັບມື້ດຽວ — ນັບຄືກັບການສະແກນ. ໃຊ້ \"ກຳນົດຊົ່ວໂມງລວມໂດຍກົງ\" ເພື່ອແກ້ຍອດທັງເດືອນ. ທັງສອງແບບອັບເດດເງິນເດືອນ (ຖ້າກົດການອະນຸມັດບໍ່ຕ້ອງການອະນຸມັດກ່ອນ); ເງິນເດືອນຂອງເດືອນຍັງຕ້ອງອະນຸມັດກ່ອນສົ່ງບັນຊີ. ເດືອນທີ່ປິດແລ້ວແກ້ບໍ່ໄດ້.")}
       </Lede>
-      <Field label="Payroll month" style={{ maxWidth: 220 }}>
+      <Field label={tr("Payroll month", "ເດືອນເງິນເດືອນ")} style={{ maxWidth: 220 }}>
         <input type="month" value={month} onChange={(e) => e.target.value && setMonth(e.target.value)} />
       </Field>
       <DataState loading={data.isLoading} error={data.error}>
         {data.data && (
           <>
-            {data.data.closed && <p className="hint warn">{fmtMonth(month)}&apos;s payroll is closed — pick an open month to correct hours.</p>}
+            {data.data.closed && <p className="hint warn">{tr(`${fmtMonth(month)}'s payroll is closed — pick an open month to correct hours.`, `ເງິນເດືອນ ${fmtMonth(month)} ປິດແລ້ວ — ເລືອກເດືອນທີ່ຍັງເປີດເພື່ອແກ້ຊົ່ວໂມງ.`)}</p>}
             <DayForm key={`day-${month}`} employees={data.data.employees} month={month} closed={data.data.closed} />
             <TotalForm key={`total-${month}`} data={data.data} />
-            <h3 style={{ fontSize: 13, marginTop: 20 }}>Correction log</h3>
-            <Table head={["Date", "Employee", "Month", "Change", "Reason", "By"]}>
-              {data.data.log.length === 0 && <EmptyRow cols={6}>No corrections logged yet.</EmptyRow>}
+            <h3 style={{ fontSize: 13, marginTop: 20 }}>{tr("Correction log", "ບັນທຶກການແກ້ໄຂ")}</h3>
+            <Table head={[tr("Date", "ວັນທີ"), tr("Employee", "ພະນັກງານ"), tr("Month", "ເດືອນ"), tr("Change", "ການປ່ຽນ"), tr("Reason", "ເຫດຜົນ"), tr("By", "ໂດຍ")]}>
+              {data.data.log.length === 0 && <EmptyRow cols={6}>{tr("No corrections logged yet.", "ຍັງບໍ່ມີການແກ້ໄຂ.")}</EmptyRow>}
               {data.data.log.map((l) => (
                 <tr key={l.id}>
                   <td className="mono">{l.created_at}</td>
@@ -71,25 +68,25 @@ function DayForm({ employees, month, closed }: { employees: ManualHours["employe
 
   async function submit() {
     const userID = f.user_id || employees[0]?.user_id;
-    if (!userID) return dialogs.error("No employee", new Error("There is no active employee to correct."));
-    if (!f.date || hours === null) return dialogs.error("Invalid times", new Error("Enter the date and both a clock-in and a clock-out time."));
-    if (!f.reason.trim()) return dialogs.error("Reason needed", new Error("Enter a short reason, e.g. which day the scanner was down."));
+    if (!userID) return dialogs.error(tr("No employee", "ບໍ່ມີພະນັກງານ"), new Error(tr("There is no active employee to correct.", "ບໍ່ມີພະນັກງານໃຫ້ແກ້.")));
+    if (!f.date || hours === null) return dialogs.error(tr("Invalid times", "ເວລາບໍ່ຖືກ"), new Error(tr("Enter the date and both a clock-in and a clock-out time.", "ໃສ່ວັນທີ ແລະ ທັງເວລາເຂົ້າ ແລະ ເວລາອອກ.")));
+    if (!f.reason.trim()) return dialogs.error(tr("Reason needed", "ຕ້ອງມີເຫດຜົນ"), new Error(tr("Enter a short reason, e.g. which day the scanner was down.", "ໃສ່ເຫດຜົນສັ້ນໆ ເຊັ່ນ ເຄື່ອງສະແກນເສຍມື້ໃດ.")));
     try {
       const res = await save.mutateAsync({ user_id: userID, date: f.date, clock_in: f.in, clock_out: f.out, reason: f.reason.trim() });
       setF((p) => ({ ...p, in: "", out: "", reason: "" }));
-      const name = employees.find((e) => e.user_id === userID)?.name ?? "the employee";
-      dialogs.success(...requestOutcome(res, `${num(hours)} hours for ${name} on ${f.date}`));
+      const name = employees.find((e) => e.user_id === userID)?.name ?? tr("the employee", "ພະນັກງານ");
+      dialogs.success(...requestOutcome(res, tr(`${num(hours)} hours for ${name} on ${f.date}`, `${num(hours)} ຊົ່ວໂມງ ຂອງ ${name} ວັນທີ ${f.date}`)));
     } catch (err) {
-      dialogs.error("Could not save", err);
+      dialogs.error(tr("Could not save", "ບັນທຶກບໍ່ສຳເລັດ"), err);
     }
   }
 
   return (
     <div className="card">
-      <h3 style={{ fontSize: 14 }}>Clock in / out for a day</h3>
-      <p className="hint">For one missed day — enter the times worked; a shift past midnight ends the next day.</p>
+      <h3 style={{ fontSize: 14 }}>{tr("Clock in / out for a day", "ໃສ່ເວລາເຂົ້າ / ອອກ ຂອງ 1 ມື້")}</h3>
+      <p className="hint">{tr("For one missed day — enter the times worked; a shift past midnight ends the next day.", "ສຳລັບ 1 ມື້ທີ່ຂາດ — ໃສ່ເວລາທີ່ເຮັດ; ກະທີ່ເລີກຫຼັງທ່ຽງຄືນ ນັບເປັນມື້ຖັດໄປ.")}</p>
       <div className="land-row">
-        <Field label="Employee">
+        <Field label={tr("Employee", "ພະນັກງານ")}>
           <select value={f.user_id} onChange={(e) => setF({ ...f, user_id: e.target.value })}>
             {employees.map((e) => (
               <option key={e.user_id} value={e.user_id}>
@@ -98,22 +95,22 @@ function DayForm({ employees, month, closed }: { employees: ManualHours["employe
             ))}
           </select>
         </Field>
-        <Field label="Date">
+        <Field label={tr("Date", "ວັນທີ")}>
           <input type="date" value={f.date} max={today()} onChange={(e) => setF({ ...f, date: e.target.value })} />
         </Field>
-        <Field label="Clock in">
+        <Field label={tr("Clock in", "ເວລາເຂົ້າ")}>
           <input type="time" value={f.in} onChange={(e) => setF({ ...f, in: e.target.value })} />
         </Field>
-        <Field label="Clock out">
+        <Field label={tr("Clock out", "ເວລາອອກ")}>
           <input type="time" value={f.out} onChange={(e) => setF({ ...f, out: e.target.value })} />
         </Field>
       </div>
-      <Field label="Reason" style={{ maxWidth: 420 }}>
-        <input value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value })} placeholder="e.g. Scanner was down all morning on 3 Oct" />
+      <Field label={tr("Reason", "ເຫດຜົນ")} style={{ maxWidth: 420 }}>
+        <input value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value })} placeholder={tr("e.g. Scanner was down all morning on 3 Oct", "ເຊັ່ນ ເຄື່ອງເສຍທັງເຊົ້າ ວັນທີ 3 ຕຸລາ")} />
       </Field>
-      {hours !== null && <p className="hint">= {num(hours)} hours that day.</p>}
+      {hours !== null && <p className="hint">= {tr(`${num(hours)} hours that day.`, `${num(hours)} ຊົ່ວໂມງ ໃນມື້ນັ້ນ.`)}</p>}
       <button type="button" className="submit-btn" onClick={submit} disabled={closed || save.isPending}>
-        💾 Add this day&apos;s hours
+        {tr("💾 Add this day's hours", "💾 ເພີ່ມຊົ່ວໂມງຂອງມື້ນີ້")}
       </button>
     </div>
   );
@@ -138,26 +135,26 @@ function TotalForm({ data }: { data: ManualHours }) {
 
   async function submit() {
     const hours = parseFloat(f.hours);
-    if (!cur || isNaN(hours) || hours < 0) return dialogs.error("Invalid hours", new Error("Enter a valid number of hours worked."));
-    if (!f.reason.trim()) return dialogs.error("Reason needed", new Error("Enter a short reason for this correction."));
+    if (!cur || isNaN(hours) || hours < 0) return dialogs.error(tr("Invalid hours", "ຊົ່ວໂມງບໍ່ຖືກ"), new Error(tr("Enter a valid number of hours worked.", "ໃສ່ຈຳນວນຊົ່ວໂມງໃຫ້ຖືກ.")));
+    if (!f.reason.trim()) return dialogs.error(tr("Reason needed", "ຕ້ອງມີເຫດຜົນ"), new Error(tr("Enter a short reason for this correction.", "ໃສ່ເຫດຜົນສັ້ນໆ ຂອງການແກ້ໄຂ.")));
     try {
       const res = await save.mutateAsync({
         user_id: cur.user_id, month: data.month, hours_worked: hours,
         ot_hours: parseFloat(f.ot) || 0, ot_hours_daily: parseFloat(f.otDaily) || 0, reason: f.reason.trim(),
       });
       setF((p) => ({ ...p, reason: "" }));
-      dialogs.success(...requestOutcome(res, `The hours correction for ${cur.name} (${fmtMonth(data.month)})`));
+      dialogs.success(...requestOutcome(res, tr(`The hours correction for ${cur.name} (${fmtMonth(data.month)})`, `ການແກ້ຊົ່ວໂມງຂອງ ${cur.name} (${fmtMonth(data.month)})`)));
     } catch (err) {
-      dialogs.error("Could not save", err);
+      dialogs.error(tr("Could not save", "ບັນທຶກບໍ່ສຳເລັດ"), err);
     }
   }
 
   return (
     <div className="card">
-      <h3 style={{ fontSize: 14 }}>Set total hours directly</h3>
-      <p className="hint">Overwrites the employee&apos;s whole total for {fmtMonth(data.month)} — use this for a bigger correction, not a single day.</p>
+      <h3 style={{ fontSize: 14 }}>{tr("Set total hours directly", "ກຳນົດຊົ່ວໂມງລວມໂດຍກົງ")}</h3>
+      <p className="hint">{tr(`Overwrites the employee's whole total for ${fmtMonth(data.month)} — use this for a bigger correction, not a single day.`, `ແທນຍອດລວມທັງໝົດຂອງພະນັກງານໃນ ${fmtMonth(data.month)} — ໃຊ້ສຳລັບການແກ້ໃຫຍ່, ບໍ່ແມ່ນມື້ດຽວ.`)}</p>
       <div className="land-row">
-        <Field label="Employee">
+        <Field label={tr("Employee", "ພະນັກງານ")}>
           <select value={userID} onChange={(e) => pick(e.target.value)}>
             {data.employees.map((e) => (
               <option key={e.user_id} value={e.user_id}>
@@ -166,27 +163,29 @@ function TotalForm({ data }: { data: ManualHours }) {
             ))}
           </select>
         </Field>
-        <Field label="Total working hours this month">
+        <Field label={tr("Total working hours this month", "ຊົ່ວໂມງເຮັດວຽກລວມເດືອນນີ້")}>
           <input type="number" min={0} value={f.hours} onChange={(e) => setF({ ...f, hours: e.target.value })} style={{ width: 120 }} />
         </Field>
-        <Field label="OT — over the limit (hrs)">
+        <Field label={tr("OT — over the limit (hrs)", "OT — ເກີນເດືອນ (ຊມ)")}>
           <input type="number" min={0} value={f.ot} onChange={(e) => setF({ ...f, ot: e.target.value })} style={{ width: 100 }} />
         </Field>
-        <Field label="OT — within the day (hrs)">
+        <Field label={tr("OT — within the day (hrs)", "OT — ໃນມື້ (ຊມ)")}>
           <input type="number" min={0} value={f.otDaily} onChange={(e) => setF({ ...f, otDaily: e.target.value })} style={{ width: 100 }} />
         </Field>
       </div>
-      <Field label="Reason for the correction" style={{ maxWidth: 420 }}>
-        <input value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value })} placeholder="e.g. Scanner was down on 3 Oct, confirmed with supervisor" />
+      <Field label={tr("Reason for the correction", "ເຫດຜົນຂອງການແກ້ໄຂ")} style={{ maxWidth: 420 }}>
+        <input value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value })} placeholder={tr("e.g. Scanner was down on 3 Oct, confirmed with supervisor", "ເຊັ່ນ ເຄື່ອງເສຍວັນທີ 3 ຕຸລາ, ຫົວໜ້າຢືນຢັນແລ້ວ")} />
       </Field>
       {cur && (
         <p className="hint">
-          Currently on file: {num(cur.hours_worked)} hours worked, {num(cur.ot_hours)}h OT over limit, {num(cur.ot_hours_daily)}h OT within
-          day{cur.manual ? " (already set by hand)" : " (from scans)"}.
+          {tr(
+            `Currently on file: ${num(cur.hours_worked)} hours worked, ${num(cur.ot_hours)}h OT over limit, ${num(cur.ot_hours_daily)}h OT within day${cur.manual ? " (already set by hand)" : " (from scans)"}.`,
+            `ຂໍ້ມູນປັດຈຸບັນ: ເຮັດວຽກ ${num(cur.hours_worked)} ຊມ, OT ເກີນເດືອນ ${num(cur.ot_hours)} ຊມ, OT ໃນມື້ ${num(cur.ot_hours_daily)} ຊມ${cur.manual ? " (ແກ້ດ້ວຍມືແລ້ວ)" : " (ຈາກການສະແກນ)"}.`,
+          )}
         </p>
       )}
       <button type="button" className="submit-btn" onClick={submit} disabled={data.closed || save.isPending}>
-        💾 Save correction
+        {tr("💾 Save correction", "💾 ບັນທຶກການແກ້ໄຂ")}
       </button>
     </div>
   );

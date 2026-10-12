@@ -2,17 +2,18 @@
 
 import { useState } from "react";
 import { DataState, Lede, SectionHead, Table, useDialogs } from "@/components/ui";
-import { useLang } from "@/lib/i18n";
+import { useLang, tr } from "@/lib/i18n";
 import { useCostLines, useDepartments, useRequestCostLabels } from "@/features/hr/api";
 import type { Department } from "@/features/hr/types";
 import { requestOutcome } from "@/features/hr/utils";
 
-const GROUP_NAMES: Record<string, string> = {
-  Room: "Cost of Goods Sold — Room",
-  "F&B": "Cost of Goods Sold — F&B",
-  Activity: "Activity Cost",
-  "Other Sales": "Cost of Other Sales",
+const GROUP_NAMES: Record<string, [string, string]> = {
+  Room: ["Cost of Goods Sold — Room", "ຕົ້ນທຶນຂາຍ — Room"],
+  "F&B": ["Cost of Goods Sold — F&B", "ຕົ້ນທຶນຂາຍ — F&B"],
+  Activity: ["Activity Cost", "ຕົ້ນທຶນກິດຈະກຳ"],
+  "Other Sales": ["Cost of Other Sales", "ຕົ້ນທຶນການຂາຍອື່ນ"],
 };
+const groupName = (g: string) => (GROUP_NAMES[g] ? tr(GROUP_NAMES[g][0], GROUP_NAMES[g][1]) : g);
 
 /** Prototype v168 hr-costlabel: which Income Statement group each department's payroll posts to. */
 export default function CostLabelsPage() {
@@ -23,10 +24,7 @@ export default function CostLabelsPage() {
     <div className="subview">
       <SectionHead title={t("sh_cost_labels")} />
       <Lede>
-        Pick which Income Statement group each department&apos;s payroll posts to as a &quot;Salaries&quot; line — e.g. Front Office and
-        Housekeeping can both point to &quot;Room&quot;, so they land together as one combined Salaries line under Cost of Goods Sold — Room.
-        Departments sharing the same label AND group are combined into one cost message when payroll is sent. Changes only affect what&apos;s
-        sent from now on.
+        {tr("Pick which Income Statement group each department's payroll posts to as a \"Salaries\" line — e.g. Front Office and Housekeeping can both point to \"Room\", so they land together as one combined Salaries line under Cost of Goods Sold — Room. Departments sharing the same label AND group are combined into one cost message when payroll is sent. Changes only affect what's sent from now on.", "ເລືອກໝວດທີ່ເງິນເດືອນຂອງແຕ່ລະພະແນກ ຈະລົງບັນຊີເປັນລາຍການ \"Salaries\" — ເຊັ່ນ ໜ້າຮ້ານ ແລະ ແມ່ບ້ານ ໃສ່ໝວດ Room ທັງສອງ ຈະລວມເປັນລາຍການດຽວ. ພະແນກທີ່ປ້າຍ ແລະ ໝວດຄືກັນ ຈະລວມເປັນລາຍການດຽວຕອນສົ່ງເງິນເດືອນ. ມີຜົນກັບການສົ່ງຄັ້ງຕໍ່ໄປເທົ່ານັ້ນ.")}
       </Lede>
       <DataState loading={depts.isLoading || lines.isLoading} error={depts.error || lines.error}>
         {depts.data && (
@@ -47,22 +45,22 @@ function LabelsTable({ depts, groups }: { depts: Department[]; groups: string[] 
   async function submit() {
     try {
       const res = await save.mutateAsync(changed.map((d) => ({ department_id: d.id, label: draft[d.id].label.trim(), group: draft[d.id].group })));
-      dialogs.success(...requestOutcome(res, "The cost label change"));
+      dialogs.success(...requestOutcome(res, tr("The cost label change", "ການປ່ຽນປ້າຍຕົ້ນທຶນ")));
     } catch (err) {
-      dialogs.error("Could not save", err);
+      dialogs.error(tr("Could not save", "ບັນທຶກບໍ່ສຳເລັດ"), err);
     }
   }
 
   // preview: which cost messages payroll will send
   const combined = new Map<string, string[]>();
   for (const d of depts) {
-    const key = `${draft[d.id].label.trim() || d.name} → Salaries — ${GROUP_NAMES[draft[d.id].group] ?? draft[d.id].group}`;
+    const key = `${draft[d.id].label.trim() || d.name} → Salaries — ${groupName(draft[d.id].group)}`;
     combined.set(key, [...(combined.get(key) ?? []), d.name]);
   }
 
   return (
     <>
-      <Table head={["Department", "Cost message label", "Income Statement group", "Posts as"]}>
+      <Table head={[tr("Department", "ພະແນກ"), tr("Cost message label", "ປ້າຍລາຍການຕົ້ນທຶນ"), tr("Income Statement group", "ໝວດໃນໃບແຈ້ງຜົນໄດ້ຮັບ"), tr("Posts as", "ລົງບັນຊີເປັນ")]}>
         {depts.map((d) => (
           <tr key={d.id}>
             <td>{d.name}</td>
@@ -70,7 +68,7 @@ function LabelsTable({ depts, groups }: { depts: Department[]; groups: string[] 
               <input
                 className="inline-input"
                 value={draft[d.id].label}
-                placeholder="e.g. Room Cost"
+                placeholder={tr("e.g. Room Cost", "ເຊັ່ນ ຕົ້ນທຶນຫ້ອງພັກ")}
                 onChange={(e) => setDraft({ ...draft, [d.id]: { ...draft[d.id], label: e.target.value } })}
               />
             </td>
@@ -78,22 +76,22 @@ function LabelsTable({ depts, groups }: { depts: Department[]; groups: string[] 
               <select className="inline-input" value={draft[d.id].group} onChange={(e) => setDraft({ ...draft, [d.id]: { ...draft[d.id], group: e.target.value } })}>
                 {groups.map((g) => (
                   <option key={g} value={g}>
-                    {GROUP_NAMES[g] ?? g}
+                    {groupName(g)}
                   </option>
                 ))}
               </select>
             </td>
             <td className="mono" style={{ fontSize: 11 }}>
-              Salaries — {GROUP_NAMES[draft[d.id].group] ?? draft[d.id].group}
+              Salaries — {groupName(draft[d.id].group)}
             </td>
           </tr>
         ))}
       </Table>
       <button type="button" className="submit-btn" style={{ marginTop: 10 }} onClick={submit} disabled={changed.length === 0 || save.isPending}>
-        💾 Save labels
+        {tr("💾 Save labels", "💾 ບັນທຶກປ້າຍ")}
       </button>
       <div className="card" style={{ marginTop: 14 }}>
-        <h3 style={{ fontSize: 13 }}>Payroll will be sent as {combined.size} cost message{combined.size === 1 ? "" : "s"}</h3>
+        <h3 style={{ fontSize: 13 }}>{tr(`Payroll will be sent as ${combined.size} cost message${combined.size === 1 ? "" : "s"}`, `ເງິນເດືອນຈະສົ່ງເປັນ ${combined.size} ລາຍການຕົ້ນທຶນ`)}</h3>
         {[...combined.entries()].map(([k, names]) => (
           <div className="stat-row" key={k}>
             <span>{k}</span>

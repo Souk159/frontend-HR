@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { DataState, Lede, SectionHead, Table, Tag } from "@/components/ui";
-import { useLang } from "@/lib/i18n";
+import { useLang, tr } from "@/lib/i18n";
 import { daysUntil, fmtDate } from "@/lib/format";
 import { useDepartments, useStaff } from "@/features/hr/api";
 import type { Staff } from "@/features/hr/types";
@@ -31,19 +31,19 @@ export default function EmployeeStatusPage() {
   return (
     <div className="subview">
       <SectionHead title={t("sh_employee_status")} />
-      <Lede>Probation and contract end dates, grouped by department. Warns when a decision is needed soon (within 30 days) or overdue.</Lede>
+      <Lede>{tr("Probation and contract end dates, grouped by department. Warns when a decision is needed soon (within 30 days) or overdue.", "ວັນໝົດທົດລອງງານ ແລະ ວັນໝົດສັນຍາ ແຍກຕາມພະແນກ. ເຕືອນເມື່ອຕ້ອງຕັດສິນໃຈ (ພາຍໃນ 30 ວັນ) ຫຼື ກາຍກຳນົດແລ້ວ.")}</Lede>
       <div className="land-row">
         <button type="button" className="mini-btn" onClick={() => setSort("probation")}>
-          Sort by Probation
+          {tr("Sort by Probation", "ຮຽງຕາມທົດລອງງານ")}
         </button>
         <button type="button" className="mini-btn" onClick={() => setSort("contract")}>
-          Sort by Contract
+          {tr("Sort by Contract", "ຮຽງຕາມສັນຍາ")}
         </button>
         <button type="button" className={`mini-btn${expiringOnly ? " flag" : ""}`} onClick={() => setExpiringOnly((v) => !v)}>
-          ⚠ Contracts/probation expiring soon{expiringOnly ? " ✓" : ""}
+          {tr("⚠ Contracts/probation expiring soon", "⚠ ສັນຍາ / ທົດລອງງານ ໃກ້ໝົດ")}{expiringOnly ? " ✓" : ""}
         </button>
         <button type="button" className="mini-btn" onClick={() => setSort(null)}>
-          Clear sort
+          {tr("Clear sort", "ລ້າງການຮຽງ")}
         </button>
       </div>
       <DataState loading={staff.isLoading} error={staff.error}>
@@ -53,7 +53,7 @@ export default function EmployeeStatusPage() {
           return (
             <div className="card" key={dept}>
               <h3 style={{ fontSize: 14 }}>{dept}</h3>
-              <Table head={["Employee", "Property", "Employment type", "Probation end", "Contract end", "Warning"]}>
+              <Table head={[tr("Employee", "ພະນັກງານ"), tr("Property", "ຣີສອດ"), tr("Employment type", "ປະເພດການຈ້າງ"), tr("Probation end", "ໝົດທົດລອງງານ"), tr("Contract end", "ສິ້ນສຸດສັນຍາ"), tr("Warning", "ແຈ້ງເຕືອນ")]}>
                 {sorted.map((e) => {
                   const w = statusWarning(e);
                   return (
@@ -73,7 +73,7 @@ export default function EmployeeStatusPage() {
             </div>
           );
         })}
-        {expiringOnly && groups.length === 0 && <p className="empty">No contracts or probations expiring within the next 30 days.</p>}
+        {expiringOnly && groups.length === 0 && <p className="empty">{tr("No contracts or probations expiring within the next 30 days.", "ບໍ່ມີສັນຍາ ຫຼື ທົດລອງງານ ທີ່ໝົດພາຍໃນ 30 ວັນ.")}</p>}
       </DataState>
     </div>
   );

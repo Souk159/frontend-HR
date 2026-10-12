@@ -1,5 +1,6 @@
 "use client";
 
+import { tr } from "@/lib/i18n";
 import { Modal, photoSrc } from "@/components/ui";
 import { fmtDate, fmtTime } from "@/lib/format";
 import type { Attendance } from "../types";
@@ -19,16 +20,16 @@ export function ScanPhotosModal({ record, onClose }: { record: Attendance | null
               // eslint-disable-next-line @next/next/no-img-element -- session-gated private image
               <img src={profile} alt={`${record.full_name} profile`} />
             ) : (
-              <div className="empty-photo">No profile photo</div>
+              <div className="empty-photo">{tr("No profile photo", "ບໍ່ມີຮູບໂປຣໄຟລ໌")}</div>
             )}
             <figcaption>
-              <b>Profile photo</b>
+              <b>{tr("Profile photo", "ຮູບໂປຣໄຟລ໌")}</b>
             </figcaption>
           </figure>
           {record.photos.length === 0 && (
             <figure>
-              <div className="empty-photo">No photo from the scanner</div>
-              <figcaption>Scan photo</figcaption>
+              <div className="empty-photo">{tr("No photo from the scanner", "ບໍ່ມີຮູບຈາກເຄື່ອງສະແກນ")}</div>
+              <figcaption>{tr("Scan photo", "ຮູບຕອນສະແກນ")}</figcaption>
             </figure>
           )}
           {record.photos.map((p) => (

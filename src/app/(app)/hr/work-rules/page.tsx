@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { DataState, Field, Lede, SectionHead, useDialogs } from "@/components/ui";
-import { useLang } from "@/lib/i18n";
+import { useLang, tr } from "@/lib/i18n";
 import { num } from "@/lib/format";
 import { useDepartments, useOrgSettings, useRequestDepartmentEdit, useRequestWorkRules, useSaveOrgSettings } from "@/features/hr/api";
 import type { Department, OrgSettings } from "@/features/hr/types";
@@ -20,14 +20,13 @@ export default function WorkRulesPage() {
         {settings.data && <OrgSettingsCard key={JSON.stringify(settings.data)} current={settings.data} />}
       </DataState>
       <Lede>
-        Each department can run its own schedule — e.g. Front Office works 5 days/week while Restaurant works 6. Changing any of them goes
-        through the Approval Rule before it takes effect.
+        {tr("Each department can run its own schedule — e.g. Front Office works 5 days/week while Restaurant works 6. Changing any of them goes through the Approval Rule before it takes effect.", "ແຕ່ລະພະແນກມີຕາຕະລາງເຮັດວຽກຂອງຕົນ — ເຊັ່ນ ໜ້າຮ້ານ 5 ມື້/ອາທິດ, ຮ້ານອາຫານ 6 ມື້. ການປ່ຽນແປງຕ້ອງຜ່ານການອະນຸມັດກ່ອນມີຜົນ.")}
       </Lede>
       <Link href="/hr/directory" className="mini-btn" style={{ display: "inline-block", marginBottom: 12 }}>
-        + Create department
+        {tr("+ Create department", "+ ສ້າງພະແນກ")}
       </Link>
       <DataState loading={depts.isLoading} error={depts.error}>
-        {depts.data?.length === 0 && <p className="empty">No departments yet.</p>}
+        {depts.data?.length === 0 && <p className="empty">{tr("No departments yet.", "ຍັງບໍ່ມີພະແນກ.")}</p>}
         {depts.data?.map((d) => (
           <RulesCard key={d.id} dept={d} calcDays={settings.data?.salary_calc_days ?? 30} />
         ))}
@@ -45,48 +44,50 @@ function OrgSettingsCard({ current }: { current: OrgSettings }) {
 
   async function submit() {
     const days = parseInt(f.salary_calc_days);
-    if (!days || days < 1 || days > 31) return dialogs.error("Invalid days", new Error("Days the salary is divided by must be 1–31."));
+    if (!days || days < 1 || days > 31) return dialogs.error(tr("Invalid days", "ຈຳນວນມື້ບໍ່ຖືກ"), new Error(tr("Days the salary is divided by must be 1–31.", "ຕົວຫານຕ້ອງຢູ່ລະຫວ່າງ 1–31.")));
     try {
       await save.mutateAsync({ ...f, salary_calc_days: days });
-      dialogs.success("Saved", "Organization-wide payroll settings updated — every department's payroll uses them immediately.");
+      dialogs.success(tr("Saved", "ບັນທຶກແລ້ວ"), tr("Organization-wide payroll settings updated — every department's payroll uses them immediately.", "ອັບເດດການຕັ້ງຄ່າເງິນເດືອນຂອງອົງກອນແລ້ວ — ທຸກພະແນກໃຊ້ທັນທີ."));
     } catch (err) {
-      dialogs.error("Could not save", err);
+      dialogs.error(tr("Could not save", "ບັນທຶກບໍ່ສຳເລັດ"), err);
     }
   }
 
   return (
     <div className="card">
-      <h3 style={{ fontSize: 14 }}>Organization-wide settings</h3>
-      <p className="hint">These apply to every department&apos;s payroll calculation — set once for however this organization runs.</p>
+      <h3 style={{ fontSize: 14 }}>{tr("Organization-wide settings", "ການຕັ້ງຄ່າຂອງອົງກອນ")}</h3>
+      <p className="hint">{tr("These apply to every department's payroll calculation — set once for however this organization runs.", "ໃຊ້ກັບການຄິດເງິນເດືອນຂອງທຸກພະແນກ — ຕັ້ງຄັ້ງດຽວຕາມນະໂຍບາຍຂອງອົງກອນ.")}</p>
       <div className="land-row">
-        <Field label="Days salary is divided by (daily rate)">
+        <Field label={tr("Days salary is divided by (daily rate)", "ຕົວຫານເງິນເດືອນ (ຄ່າຈ້າງຕໍ່ມື້)")}>
           <input type="number" min={1} max={31} value={f.salary_calc_days} onChange={(e) => setF({ ...f, salary_calc_days: e.target.value })} style={{ width: 90 }} />
         </Field>
-        <Field label="Deduction counted in">
+        <Field label={tr("Deduction counted in", "ນັບການຫັກເປັນ")}>
           <select value={f.deduction_unit} onChange={(e) => setF({ ...f, deduction_unit: e.target.value as OrgSettings["deduction_unit"] })}>
-            <option value="hours">Hours</option>
-            <option value="minutes">Minutes</option>
+            <option value="hours">{tr("Hours", "ຊົ່ວໂມງ")}</option>
+            <option value="minutes">{tr("Minutes", "ນາທີ")}</option>
           </select>
         </Field>
-        <Field label="OT counted in">
+        <Field label={tr("OT counted in", "ນັບ OT ເປັນ")}>
           <select value={f.ot_unit} onChange={(e) => setF({ ...f, ot_unit: e.target.value as OrgSettings["ot_unit"] })}>
-            <option value="hours">Hours</option>
-            <option value="minutes">Minutes</option>
+            <option value="hours">{tr("Hours", "ຊົ່ວໂມງ")}</option>
+            <option value="minutes">{tr("Minutes", "ນາທີ")}</option>
           </select>
         </Field>
-        <Field label="If no day off that week, OT is judged against">
+        <Field label={tr("If no day off that week, OT is judged against", "ອາທິດທີ່ບໍ່ມີມື້ພັກ ຄິດ OT ທຽບກັບ")}>
           <select value={f.ot_basis} onChange={(e) => setF({ ...f, ot_basis: e.target.value as OrgSettings["ot_basis"] })}>
-            <option value="monthly">The month&apos;s total</option>
-            <option value="weekly">That week only</option>
+            <option value="monthly">{tr("The month's total", "ຍອດທັງເດືອນ")}</option>
+            <option value="weekly">{tr("That week only", "ສະເພາະອາທິດນັ້ນ")}</option>
           </select>
         </Field>
       </div>
       <button type="button" className="mini-btn" onClick={submit} disabled={!dirty || save.isPending}>
-        Save settings
+        {tr("Save settings", "ບັນທຶກການຕັ້ງຄ່າ")}
       </button>
       <p className="hint" style={{ marginTop: 6 }}>
-        Daily rate = salary ÷ days above. Hourly rate = daily rate ÷ the department&apos;s hours per day below. &quot;Hours&quot; counts only
-        whole hours (rounded down); &quot;Minutes&quot; counts to the minute.
+        {tr(
+          'Daily rate = salary ÷ days above. Hourly rate = daily rate ÷ the department\'s hours per day below. "Hours" counts only whole hours (rounded down); "Minutes" counts to the minute.',
+          'ຄ່າຈ້າງຕໍ່ມື້ = ເງິນເດືອນ ÷ ຈຳນວນມື້ຂ້າງເທິງ. ຄ່າຈ້າງຕໍ່ຊົ່ວໂມງ = ຄ່າຈ້າງຕໍ່ມື້ ÷ ຊົ່ວໂມງ/ມື້ ຂອງພະແນກຂ້າງລຸ່ມ. "ຊົ່ວໂມງ" ນັບສະເພາະຊົ່ວໂມງເຕັມ (ປັດລົງ); "ນາທີ" ນັບລະອຽດຮອດນາທີ.',
+        )}
       </p>
     </div>
   );
@@ -121,9 +122,9 @@ function RulesCard({ dept, calcDays }: { dept: Department; calcDays: number }) {
           sick_leave_quota: parseInt(f.sick) || 0,
         },
       });
-      dialogs.success(...requestOutcome(res, `Work rules change for ${dept.name}`));
+      dialogs.success(...requestOutcome(res, tr(`Work rules change for ${dept.name}`, `ການປ່ຽນກົດລະບຽບຂອງ ${dept.name}`)));
     } catch (err) {
-      dialogs.error("Could not send request", err);
+      dialogs.error(tr("Could not send request", "ສົ່ງຄຳຂໍບໍ່ສຳເລັດ"), err);
     }
   }
 
@@ -131,32 +132,34 @@ function RulesCard({ dept, calcDays }: { dept: Department; calcDays: number }) {
     <div className="card">
       <DeptHeader dept={dept} />
       <div className="land-row">
-        <Field label="Hours per day">
+        <Field label={tr("Hours per day", "ຊົ່ວໂມງຕໍ່ມື້")}>
           <input value={f.hours} onChange={set("hours")} />
         </Field>
-        <Field label="Days per week">
+        <Field label={tr("Days per week", "ມື້ຕໍ່ອາທິດ")}>
           <input value={f.days} onChange={set("days")} />
         </Field>
-        <Field label="OT over the limit (× hourly)">
+        <Field label={tr("OT over the limit (× hourly)", "OT ເກີນມາດຕະຖານເດືອນ (× ຄ່າຈ້າງ/ຊມ)")}>
           <input value={f.ot} onChange={set("ot")} />
         </Field>
-        <Field label="OT within the day (× hourly)">
+        <Field label={tr("OT within the day (× hourly)", "OT ເກີນໃນມື້ (× ຄ່າຈ້າງ/ຊມ)")}>
           <input value={f.otDaily} onChange={set("otDaily")} />
         </Field>
-        <Field label="Annual leave (days/yr)">
+        <Field label={tr("Annual leave (days/yr)", "ລາພັກປະຈຳປີ (ມື້/ປີ)")}>
           <input value={f.annual} onChange={set("annual")} />
         </Field>
-        <Field label="Sick leave (days/yr)">
+        <Field label={tr("Sick leave (days/yr)", "ລາປ່ວຍ (ມື້/ປີ)")}>
           <input value={f.sick} onChange={set("sick")} />
         </Field>
         <button type="button" className="submit-btn" onClick={submit} disabled={req.isPending}>
-          Submit change
+          {tr("Submit change", "ສົ່ງການປ່ຽນແປງ")}
         </button>
       </div>
       <p className="hint">
-        Standard monthly hours: <b>{num(monthHours)}</b> (hours/day × days/week × 4 weeks). &quot;OT over the limit&quot; applies once total
-        hours pass this; &quot;OT within the day&quot; applies to extra hours on a single day that are still inside this monthly limit.
-        Hourly rate = base salary ÷ {calcDays} ÷ {num(hours)}h. Annual/sick leave here sets the default for employees in this department.
+        {tr("Standard monthly hours:", "ຊົ່ວໂມງມາດຕະຖານຕໍ່ເດືອນ:")} <b>{num(monthHours)}</b>{" "}
+        {tr(
+          `(hours/day × days/week × 4 weeks). "OT over the limit" applies once total hours pass this; "OT within the day" applies to extra hours on a single day that are still inside this monthly limit. Hourly rate = base salary ÷ ${calcDays} ÷ ${num(hours)}h. Annual/sick leave here sets the default for employees in this department.`,
+          `(ຊົ່ວໂມງ/ມື້ × ມື້/ອາທິດ × 4 ອາທິດ). "OT ເກີນມາດຕະຖານເດືອນ" ໃຊ້ເມື່ອຊົ່ວໂມງລວມເກີນນີ້; "OT ເກີນໃນມື້" ໃຊ້ກັບຊົ່ວໂມງເກີນໃນມື້ດຽວ ທີ່ຍັງຢູ່ໃນມາດຕະຖານເດືອນ. ຄ່າຈ້າງຕໍ່ຊົ່ວໂມງ = ເງິນເດືອນ ÷ ${calcDays} ÷ ${num(hours)} ຊມ. ລາພັກປະຈຳປີ/ລາປ່ວຍ ຢູ່ນີ້ແມ່ນຄ່າເລີ່ມຕົ້ນຂອງພະນັກງານໃນພະແນກ.`,
+        )}
       </p>
     </div>
   );
@@ -175,7 +178,7 @@ function DeptHeader({ dept }: { dept: Department }) {
       setRenaming(false);
       dialogs.success(...requestOutcome(res, what));
     } catch (err) {
-      dialogs.error("Could not send request", err);
+      dialogs.error(tr("Could not send request", "ສົ່ງຄຳຂໍບໍ່ສຳເລັດ"), err);
     }
   }
 
@@ -186,30 +189,30 @@ function DeptHeader({ dept }: { dept: Department }) {
           <input className="inline-input" value={name} onChange={(e) => setName(e.target.value)} autoFocus style={{ minWidth: 220 }} />
           <button type="button" className="mini-btn" disabled={edit.isPending || !name.trim() || name.trim() === dept.name}
             onClick={() => run({ name: name.trim() }, `Renaming ${dept.name} to ${name.trim()}`)}>
-            Save name
+            {tr("Save name", "ບັນທຶກຊື່")}
           </button>
           <button type="button" className="mini-btn" onClick={() => (setRenaming(false), setName(dept.name))}>
-            Cancel
+            {tr("Cancel", "ຍົກເລີກ")}
           </button>
         </>
       ) : (
         <>
           <h3 style={{ fontSize: 14, margin: 0 }}>{dept.name}</h3>
           <button type="button" className="mini-btn" onClick={() => setRenaming(true)}>
-            ✏️ Rename
+            {tr("✏️ Rename", "✏️ ປ່ຽນຊື່")}
           </button>
           <button
             type="button"
             className="mini-btn flag"
             disabled={edit.isPending}
-            title={dept.filled > 0 ? "Move its employees to another department first" : undefined}
+            title={dept.filled > 0 ? tr("Move its employees to another department first", "ຍ້າຍພະນັກງານໄປພະແນກອື່ນກ່ອນ") : undefined}
             onClick={() => {
               if (dept.filled > 0)
-                return dialogs.error("Department not empty", new Error(`${dept.name} still has ${dept.filled} employee(s) — move them to another department first.`));
-              if (window.confirm(`Close ${dept.name}? It disappears from every list once approved.`)) run({ close: true }, `Closing ${dept.name}`);
+                return dialogs.error(tr("Department not empty", "ພະແນກຍັງມີພະນັກງານ"), new Error(tr(`${dept.name} still has ${dept.filled} employee(s) — move them to another department first.`, `${dept.name} ຍັງມີພະນັກງານ ${dept.filled} ຄົນ — ຍ້າຍໄປພະແນກອື່ນກ່ອນ.`)));
+              if (window.confirm(tr(`Close ${dept.name}? It disappears from every list once approved.`, `ປິດ ${dept.name}? ເມື່ອອະນຸມັດແລ້ວ ຈະຫາຍຈາກທຸກລາຍການ.`))) run({ close: true }, tr(`Closing ${dept.name}`, `ການປິດ ${dept.name}`));
             }}
           >
-            Close department
+            {tr("Close department", "ປິດພະແນກ")}
           </button>
         </>
       )}

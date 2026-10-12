@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { DataState, EmptyRow, Lede, SectionHead, Table, useDialogs } from "@/components/ui";
-import { useLang, type TKey } from "@/lib/i18n";
+import { useLang, type TKey, tr } from "@/lib/i18n";
 import { useCoordinators, useSetCoordinatorTabs } from "@/features/hr/api";
 import type { Coordinator } from "@/features/hr/types";
 
@@ -24,13 +24,12 @@ export default function ManageHRAccessPage() {
     <div className="dash-wrap">
       <SectionHead title={t("sh_hr_coord_permissions")} />
       <Lede>
-        Decide which specific HR tabs each coordinator can reach. Payroll, Approvals, and Manage HR Access itself are never available to a
-        Coordinator, regardless of what&apos;s checked here — only the HR Manager and above can touch those.
+        {tr("Decide which specific HR tabs each coordinator can reach. Payroll, Approvals, and Manage HR Access itself are never available to a Coordinator, regardless of what's checked here — only the HR Manager and above can touch those.", "ກຳນົດວ່າຜູ້ປະສານງານແຕ່ລະຄົນ ເຂົ້າໜ້າ HR ໃດໄດ້. ເງິນເດືອນ, ການອະນຸມັດ ແລະ ການຈັດການສິດ ມອບໃຫ້ຜູ້ປະສານງານບໍ່ໄດ້ ບໍ່ວ່າຈະ tick ຫຍັງ — ສະເພາະ HR Manager ຂຶ້ນໄປ.")}
       </Lede>
       <DataState loading={co.isLoading} error={co.error}>
-        <Table head={["Coordinator", ...tabs.map((x) => t(TAB_LABEL[x] ?? "tb_employee_directory")), ""]}>
+        <Table head={[tr("Coordinator", "ຜູ້ປະສານງານ"), ...tabs.map((x) => t(TAB_LABEL[x] ?? "tb_employee_directory")), ""]}>
           {(co.data?.coordinators ?? []).length === 0 && (
-            <EmptyRow cols={tabs.length + 2}>No HR Coordinator accounts yet.</EmptyRow>
+            <EmptyRow cols={tabs.length + 2}>{tr("No HR Coordinator accounts yet.", "ຍັງບໍ່ມີບັນຊີຜູ້ປະສານງານ HR.")}</EmptyRow>
           )}
           {co.data?.coordinators.map((c) => (
             // key includes saved tabs so the row resets after a save / refetch
@@ -38,7 +37,7 @@ export default function ManageHRAccessPage() {
           ))}
         </Table>
       </DataState>
-      <Lede>New coordinator accounts are created by Admin with the &quot;HR Coordinator&quot; role (hr_coordinator), then given access here.</Lede>
+      <Lede>{tr("New coordinator accounts are created by Admin with the \"HR Coordinator\" role (hr_coordinator), then given access here.", "ບັນຊີຜູ້ປະສານງານໃໝ່ ສ້າງໃນ ບັນຊີຜູ້ໃຊ້ (ບົດບາດ HR Coordinator) ແລ້ວມາມອບສິດຢູ່ນີ້.")}</Lede>
     </div>
   );
 }
@@ -51,9 +50,9 @@ function CoordinatorRow({ co, tabs }: { co: Coordinator; tabs: string[] }) {
   async function submit() {
     try {
       await save.mutateAsync({ id: co.user_id, tabs: [...checked] });
-      dialogs.success("Access updated", `${co.full_name} can now reach: ${[...checked].join(", ") || "nothing yet"}.`);
+      dialogs.success(tr("Access updated", "ອັບເດດສິດແລ້ວ"), tr(`${co.full_name} can now reach: ${[...checked].join(", ") || "nothing yet"}.`, `${co.full_name} ເຂົ້າເຖິງໄດ້: ${[...checked].join(", ") || "ຍັງບໍ່ມີ"}.`));
     } catch (err) {
-      dialogs.error("Could not save", err);
+      dialogs.error(tr("Could not save", "ບັນທຶກບໍ່ສຳເລັດ"), err);
     }
   }
 
@@ -79,7 +78,7 @@ function CoordinatorRow({ co, tabs }: { co: Coordinator; tabs: string[] }) {
       ))}
       <td>
         <button type="button" className="mini-btn" onClick={submit} disabled={save.isPending}>
-          Save
+          {tr("Save", "ບັນທຶກ")}
         </button>
       </td>
     </tr>

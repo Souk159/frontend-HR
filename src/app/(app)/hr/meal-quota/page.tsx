@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { DataState, EmptyRow, Lede, SectionHead, Table, useDialogs } from "@/components/ui";
-import { useLang } from "@/lib/i18n";
+import { useLang, tr } from "@/lib/i18n";
 import { useRequestMealQuotas, useStaff, useUpdateBenefits } from "@/features/hr/api";
 import type { Staff } from "@/features/hr/types";
 import { batchOutcome } from "@/features/hr/utils";
@@ -18,7 +18,7 @@ export default function MealQuotaPage() {
     const body = rows
       .filter((s) => drafts[s.user_id] !== undefined && Number(drafts[s.user_id]) !== s.meal_quota)
       .map((s) => ({ user_id: s.user_id, meal_quota: parseInt(drafts[s.user_id]) || 0 }));
-    if (body.length === 0) return dialogs.error("No change", new Error("No changes to save."));
+    if (body.length === 0) return dialogs.error(tr("No change", "ບໍ່ມີການປ່ຽນແປງ"), new Error(tr("No changes to save.", "ບໍ່ມີຫຍັງໃຫ້ບັນທຶກ.")));
     try {
       const r = await request.mutateAsync(body);
       setDrafts((d) => {
@@ -26,9 +26,9 @@ export default function MealQuotaPage() {
         body.forEach((b) => delete next[b.user_id]);
         return next;
       });
-      dialogs.success(...batchOutcome(r, "meal quota change(s)"));
+      dialogs.success(...batchOutcome(r, tr("meal quota change(s)", "ການປ່ຽນໂຄຕາອາຫານ")));
     } catch (err) {
-      dialogs.error("Could not send requests", err);
+      dialogs.error(tr("Could not send requests", "ສົ່ງຄຳຂໍບໍ່ສຳເລັດ"), err);
     }
   }
 
@@ -36,15 +36,14 @@ export default function MealQuotaPage() {
     <div className="subview">
       <SectionHead title={t("sh_staff_meal_quota")} />
       <Lede>
-        Resets on the 1st of each month. Changing a quota goes through the Approval Rule before it applies. Service charge and bonus
-        eligibility are set in each employee&apos;s profile (Employee Directory → Edit).
+        {tr("Resets on the 1st of each month. Changing a quota goes through the Approval Rule before it applies. Service charge and bonus eligibility are set in each employee's profile (Employee Directory → Edit).", "ການປ່ຽນໂຄຕາຕ້ອງຜ່ານການອະນຸມັດກ່ອນມີຜົນ. ສິດໄດ້ຄ່າບໍລິການ ແລະ ໂບນັດ ຕັ້ງໃນໂປຣໄຟລ໌ພະນັກງານ (ສາລະບານພະນັກງານ → ແກ້ໄຂ).")}
       </Lede>
       <button type="button" className="submit-btn" style={{ marginBottom: 12 }} onClick={() => send(staff.data ?? [])} disabled={request.isPending}>
         {t("save_all")}
       </button>
       <DataState loading={staff.isLoading} error={staff.error}>
-        <Table head={["Employee", "Department", "Monthly quota", "Used this month", "Remaining", "Benefit notes", ""]}>
-          {(staff.data ?? []).length === 0 && <EmptyRow cols={7}>No employees yet.</EmptyRow>}
+        <Table head={[tr("Employee", "ພະນັກງານ"), tr("Department", "ພະແນກ"), tr("Monthly quota", "ໂຄຕາຕໍ່ເດືອນ"), tr("Used this month", "ໃຊ້ເດືອນນີ້"), tr("Remaining", "ຍັງເຫຼືອ"), tr("Benefit notes", "ໝາຍເຫດສະຫວັດດີການ"), ""]}>
+          {(staff.data ?? []).length === 0 && <EmptyRow cols={7}>{tr("No employees yet.", "ຍັງບໍ່ມີພະນັກງານ.")}</EmptyRow>}
           {staff.data?.map((s) => (
             <MealRow
               key={s.user_id}
@@ -66,7 +65,7 @@ function MealRow({ staff: s, draft, onDraft, onSave }: { staff: Staff; draft?: s
   const [notes, setNotes] = useState(s.benefit_notes);
   const remaining = Math.max(0, s.meal_quota - s.meals_used);
   const patch = (body: { benefit_notes?: string }) =>
-    benefits.mutateAsync({ id: s.user_id, ...body }).catch((err) => dialogs.error("Could not save", err));
+    benefits.mutateAsync({ id: s.user_id, ...body }).catch((err) => dialogs.error(tr("Could not save", "ບັນທຶກບໍ່ສຳເລັດ"), err));
 
   return (
     <tr>
@@ -78,11 +77,11 @@ function MealRow({ staff: s, draft, onDraft, onSave }: { staff: Staff; draft?: s
       <td className="mono">{s.meals_used}</td>
       <td className={`mono ${remaining === 0 ? "c-clay bold" : ""}`}>{remaining}</td>
       <td>
-        <input className="inline-input" style={{ width: 160 }} value={notes} placeholder="e.g. Free meal x2/week" onChange={(e) => setNotes(e.target.value)} onBlur={() => notes !== s.benefit_notes && patch({ benefit_notes: notes })} />
+        <input className="inline-input" style={{ width: 160 }} value={notes} placeholder={tr("e.g. Free meal x2/week", "ເຊັ່ນ ອາຫານຟຣີ 2 ຄາບ/ອາທິດ")} onChange={(e) => setNotes(e.target.value)} onBlur={() => notes !== s.benefit_notes && patch({ benefit_notes: notes })} />
       </td>
       <td>
         <button type="button" className="mini-btn" onClick={onSave}>
-          Save
+          {tr("Save", "ບັນທຶກ")}
         </button>
       </td>
     </tr>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { DataState, EmptyRow, Field, Lede, Modal, SectionHead, Table, Tag, useDialogs } from "@/components/ui";
-import { useLang } from "@/lib/i18n";
+import { useLang, tr } from "@/lib/i18n";
 import {
   useAllProperties,
   useCreateProperty,
@@ -39,25 +39,26 @@ export default function ScannersPage() {
       <SectionHead title={t("sh_scanners")}>
         {canAdmin && (
           <button type="button" className="submit-btn" onClick={() => setAdding(true)}>
-            + Add scanner
+            {tr("+ Add scanner", "+ ເພີ່ມເຄື່ອງສະແກນ")}
           </button>
         )}
       </SectionHead>
       <Lede>
-        Each scanner belongs to one property. An employee&apos;s Scanner PIN is linked only to the scanners of their own property (plus any
-        scanner not assigned yet), so the same PIN can be used by different people at different resorts. A scanner sends nothing until its
-        serial number is added here{canAdmin ? "" : " by Admin, GM or Owner"}.
+        {tr(
+          `Each scanner belongs to one property. An employee's Scanner PIN is linked only to the scanners of their own property (plus any scanner not assigned yet), so the same PIN can be used by different people at different resorts. A scanner sends nothing until its serial number is added here${canAdmin ? "" : " by Admin, GM or Owner"}.`,
+          `ແຕ່ລະເຄື່ອງສະແກນເປັນຂອງຣີສອດດຽວ. PIN ສະແກນຂອງພະນັກງານ ຜູກສະເພາະກັບເຄື່ອງຂອງຣີສອດຕົນເອງ (ແລະ ເຄື່ອງທີ່ຍັງບໍ່ກຳນົດ), ສະນັ້ນ PIN ດຽວກັນ ໃຊ້ໄດ້ກັບຄົນຕ່າງກັນໃນຕ່າງຣີສອດ. ເຄື່ອງຈະບໍ່ສົ່ງຫຍັງ ຈົນກວ່າເລກ Serial ຖືກເພີ່ມຢູ່ນີ້${canAdmin ? "" : " ໂດຍ Admin, GM ຫຼື ເຈົ້າຂອງ"}.`,
+        )}
       </Lede>
       <ServerSetting key={server} current={server} canEdit={canAdmin} />
       <DataState loading={scanners.isLoading} error={scanners.error}>
-        <Table head={["Scanner", "Serial no.", "Property", "Linked PINs", "Last scan", ""]}>
-          {(scanners.data ?? []).length === 0 && <EmptyRow cols={6}>No scanners registered yet.</EmptyRow>}
+        <Table head={[tr("Scanner", "ເຄື່ອງສະແກນ"), tr("Serial no.", "ເລກ Serial"), tr("Property", "ຣີສອດ"), tr("Linked PINs", "PIN ທີ່ຜູກ"), tr("Last scan", "ສະແກນລ່າສຸດ"), ""]}>
+          {(scanners.data ?? []).length === 0 && <EmptyRow cols={6}>{tr("No scanners registered yet.", "ຍັງບໍ່ມີເຄື່ອງສະແກນ.")}</EmptyRow>}
           {scanners.data?.map((s) => (
             <ScannerRow key={s.id} scanner={s} properties={props.data ?? []} canDelete={canAdmin} />
           ))}
         </Table>
       </DataState>
-      <Modal open={adding} onClose={() => setAdding(false)} title="Add scanner">
+      <Modal open={adding} onClose={() => setAdding(false)} title={tr("Add scanner", "ເພີ່ມເຄື່ອງສະແກນ")}>
         {adding && <AddScannerForm scanners={scanners.data ?? []} properties={props.data ?? []} server={server} onDone={() => setAdding(false)} />}
       </Modal>
     </div>
@@ -72,28 +73,28 @@ function ServerSetting({ current, canEdit }: { current: string; canEdit: boolean
   async function submit() {
     try {
       const r = await save.mutateAsync(value);
-      dialogs.success("Saved", r.adms_server ? `Scanners send to ${r.adms_server}, port 80.` : "Server address cleared.");
+      dialogs.success(tr("Saved", "ບັນທຶກແລ້ວ"), r.adms_server ? tr(`Scanners send to ${r.adms_server}, port 80.`, `ເຄື່ອງສະແກນສົ່ງໄປ ${r.adms_server}, port 80.`) : tr("Server address cleared.", "ລ້າງທີ່ຢູ່ server ແລ້ວ."));
     } catch (err) {
-      dialogs.error("Could not save", err);
+      dialogs.error(tr("Could not save", "ບັນທຶກບໍ່ສຳເລັດ"), err);
     }
   }
   return (
     <div className="card">
       <div className="land-row" style={{ alignItems: "flex-end", marginBottom: 0 }}>
         <Field
-          label="Server address entered on the scanners"
+          label={tr("Server address entered on the scanners", "ທີ່ຢູ່ server ທີ່ໃສ່ໃນເຄື່ອງສະແກນ")}
           grow={2}
-          hint="The API domain of this system (not the HR website), e.g. api.example.com — scanners add /iclock/… themselves."
+          hint={tr("The API domain of this system (not the HR website), e.g. api.example.com — scanners add /iclock/… themselves.", "ໂດເມນ API ຂອງລະບົບ (ບໍ່ແມ່ນເວັບ HR) ເຊັ່ນ api.example.com — ເຄື່ອງເພີ່ມ /iclock/… ເອງ.")}
         >
           {canEdit ? (
-            <input className="mono" value={value} onChange={(e) => setValue(e.target.value)} placeholder="e.g. uat.superproject.yorlapa.com" />
+            <input className="mono" value={value} onChange={(e) => setValue(e.target.value)} placeholder={tr("e.g. uat.superproject.yorlapa.com", "ເຊັ່ນ uat.superproject.yorlapa.com")} />
           ) : (
             <b className="mono">{current || "— not set —"}</b>
           )}
         </Field>
         {canEdit && (
           <button type="button" className="mini-btn" onClick={submit} disabled={save.isPending || value.trim() === current}>
-            Save
+            {tr("Save", "ບັນທຶກ")}
           </button>
         )}
       </div>
@@ -111,37 +112,37 @@ function AddScannerForm({
   const [propertyId, setPropertyId] = useState(properties.length === 1 ? properties[0].id : "");
   const serialNo = serial.replace(/\s+/g, "");
   const existing = scanners.find((s) => s.serial_no.toLowerCase() === serialNo.toLowerCase());
-  const serverText = server || "(set the server address on this page first)";
+  const serverText = server || tr("(set the server address on this page first)", "(ຕັ້ງທີ່ຢູ່ server ໃນໜ້ານີ້ກ່ອນ)");
 
   async function submit() {
-    if (!serialNo) return dialogs.error("Serial number required", "Enter the serial number shown on the scanner (System Info → Device Info).");
-    if (existing) return dialogs.error("Already registered", `${serialNo} is already registered as "${existing.label || existing.serial_no}". Edit it in the list instead.`);
+    if (!serialNo) return dialogs.error(tr("Serial number required", "ຕ້ອງມີເລກ Serial"), tr("Enter the serial number shown on the scanner (System Info → Device Info).", "ໃສ່ເລກ Serial ທີ່ສະແດງໃນເຄື່ອງ (System Info → Device Info)."));
+    if (existing) return dialogs.error(tr("Already registered", "ລົງທະບຽນແລ້ວ"), tr(`${serialNo} is already registered as "${existing.label || existing.serial_no}". Edit it in the list instead.`, `${serialNo} ລົງທະບຽນແລ້ວ ເປັນ "${existing.label || existing.serial_no}". ແກ້ໃນລາຍການແທນ.`));
     try {
       await register.mutateAsync({ serial_no: serialNo, label: label.trim(), property_id: propertyId || null });
-      dialogs.success("Scanner added", `${label.trim() || serialNo} is registered. Set its Cloud Server (ADMS) to ${serverText}, port 80 — scans appear here once it connects.`);
+      dialogs.success(tr("Scanner added", "ເພີ່ມເຄື່ອງສະແກນແລ້ວ"), tr(`${label.trim() || serialNo} is registered. Set its Cloud Server (ADMS) to ${serverText}, port 80 — scans appear here once it connects.`, `ລົງທະບຽນ ${label.trim() || serialNo} ແລ້ວ. ຕັ້ງ Cloud Server (ADMS) ເປັນ ${serverText}, port 80 — ເມື່ອເຊື່ອມຕໍ່ໄດ້ ການສະແກນຈະສະແດງຢູ່ນີ້.`));
       onDone();
     } catch (err) {
-      dialogs.error("Could not add scanner", err);
+      dialogs.error(tr("Could not add scanner", "ເພີ່ມເຄື່ອງສະແກນບໍ່ສຳເລັດ"), err);
     }
   }
 
   return (
     <>
-      <Field label="Serial number" hint="On the scanner: Menu → System Info → Device Info → Serial Number. Must match exactly.">
-        <input className="mono" value={serial} onChange={(e) => setSerial(e.target.value)} placeholder="e.g. AJE1260301561" autoFocus />
+      <Field label={tr("Serial number", "ເລກ Serial")} hint={tr("On the scanner: Menu → System Info → Device Info → Serial Number. Must match exactly.", "ຢູ່ເຄື່ອງ: Menu → System Info → Device Info → Serial Number. ຕ້ອງກົງທຸກຕົວ.")}>
+        <input className="mono" value={serial} onChange={(e) => setSerial(e.target.value)} placeholder={tr("e.g. AJE1260301561", "ເຊັ່ນ AJE1260301561")} autoFocus />
       </Field>
       {existing && (
         <p className="hint">
-          <Tag kind="low">Already registered</Tag> as {existing.label || existing.serial_no}
+          <Tag kind="low">{tr("Already registered", "ລົງທະບຽນແລ້ວ")}</Tag> as {existing.label || existing.serial_no}
           {existing.property ? ` at ${existing.property}` : ""}.
         </p>
       )}
-      <Field label="Name">
-        <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Namkat staff gate" />
+      <Field label={tr("Name", "ຊື່")}>
+        <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder={tr("e.g. Namkat staff gate", "ເຊັ່ນ ປະຕູພະນັກງານ Namkat")} />
       </Field>
-      <Field label="Property" hint="Which resort the scanner stands at. Employees' PINs are linked to the scanners of their property.">
+      <Field label={tr("Property", "ຣີສອດ")} hint={tr("Which resort the scanner stands at. Employees' PINs are linked to the scanners of their property.", "ເຄື່ອງຕັ້ງຢູ່ຣີສອດໃດ. PIN ຂອງພະນັກງານ ຜູກກັບເຄື່ອງຂອງຣີສອດຕົນເອງ.")}>
         <select value={propertyId} onChange={(e) => setPropertyId(e.target.value)}>
-          <option value="">— Not assigned —</option>
+          <option value="">{tr("— Not assigned —", "— ຍັງບໍ່ກຳນົດ —")}</option>
           {properties.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
@@ -150,11 +151,11 @@ function AddScannerForm({
         </select>
       </Field>
       <div className="hint" style={{ margin: "12px 0" }}>
-        Then on the scanner, <b>COMM. → Cloud Server Setting</b>: Server mode <b>ADMS</b>, Enable domain name <b>ON</b>, Server address{" "}
-        <b className="mono">{serverText}</b>, Port <b className="mono">80</b>, HTTPS and proxy <b>OFF</b>. Set the time zone to GMT+7.
+        {tr("Then on the scanner,", "ຈາກນັ້ນ ຢູ່ເຄື່ອງສະແກນ ເຂົ້າ")} <b>COMM. → Cloud Server Setting</b>: Server mode <b>ADMS</b>, Enable domain name <b>ON</b>, Server address{" "}
+        <b className="mono">{serverText}</b>, Port <b className="mono">80</b>, HTTPS {tr("and", "ແລະ")} proxy <b>OFF</b>. {tr("Set the time zone to GMT+7.", "ຕັ້ງເຂດເວລາເປັນ GMT+7.")}
       </div>
       <button type="button" className="submit-btn" onClick={submit} disabled={register.isPending || !serialNo || !!existing}>
-        {register.isPending ? "…" : "+ Add scanner"}
+        {register.isPending ? "…" : tr("+ Add scanner", "+ ເພີ່ມເຄື່ອງສະແກນ")}
       </button>
     </>
   );
@@ -171,9 +172,9 @@ function ScannerRow({ scanner, properties, canDelete }: { scanner: Scanner; prop
   async function save() {
     try {
       await update.mutateAsync({ id: scanner.id, property_id: propertyId || null, label });
-      dialogs.success("Scanner updated", `${label || scanner.serial_no} is now assigned to ${properties.find((p) => p.id === propertyId)?.name ?? "no property"}.`);
+      dialogs.success(tr("Scanner updated", "ອັບເດດເຄື່ອງສະແກນແລ້ວ"), tr(`${label || scanner.serial_no} is now assigned to ${properties.find((p) => p.id === propertyId)?.name ?? "no property"}.`, `${label || scanner.serial_no} ຖືກກຳນົດໃຫ້ ${properties.find((p) => p.id === propertyId)?.name ?? "ບໍ່ມີຣີສອດ"} ແລ້ວ.`));
     } catch (err) {
-      dialogs.error("Could not save", err);
+      dialogs.error(tr("Could not save", "ບັນທຶກບໍ່ສຳເລັດ"), err);
     }
   }
 
@@ -181,26 +182,26 @@ function ScannerRow({ scanner, properties, canDelete }: { scanner: Scanner; prop
     const name = scanner.label || scanner.serial_no;
     if (
       !window.confirm(
-        `Remove scanner ${name}? Its ${scanner.linked_pins} PIN link(s) are removed and anything it sends afterwards is ignored until it is added again. Attendance it already recorded stays.`,
+        tr(`Remove scanner ${name}? Its ${scanner.linked_pins} PIN link(s) are removed and anything it sends afterwards is ignored until it is added again. Attendance it already recorded stays.`, `ລຶບເຄື່ອງ ${name}? PIN ທີ່ຜູກ ${scanner.linked_pins} ລາຍການຈະຖືກລຶບ ແລະ ສິ່ງທີ່ສົ່ງມາພາຍຫຼັງຈະຖືກມອງຂ້າມ ຈົນກວ່າຈະເພີ່ມຄືນ. ການເຂົ້າວຽກທີ່ບັນທຶກແລ້ວຍັງຢູ່.`),
       )
     )
       return;
     try {
       await del.mutateAsync(scanner.id);
     } catch (err) {
-      dialogs.error("Could not remove", err);
+      dialogs.error(tr("Could not remove", "ລົບບໍ່ສຳເລັດ"), err);
     }
   }
 
   return (
     <tr>
       <td>
-        <input className="inline-input" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Front gate" />
+        <input className="inline-input" value={label} onChange={(e) => setLabel(e.target.value)} placeholder={tr("e.g. Front gate", "ເຊັ່ນ ປະຕູໜ້າ")} />
       </td>
       <td className="mono">{scanner.serial_no}</td>
       <td>
         <select className="inline-input" value={propertyId} onChange={(e) => setPropertyId(e.target.value)}>
-          <option value="">— Not assigned —</option>
+          <option value="">{tr("— Not assigned —", "— ຍັງບໍ່ກຳນົດ —")}</option>
           {properties.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
@@ -219,12 +220,12 @@ function ScannerRow({ scanner, properties, canDelete }: { scanner: Scanner; prop
       <td style={{ whiteSpace: "nowrap" }}>
         {dirty && (
           <button type="button" className="mini-btn" onClick={save} disabled={update.isPending}>
-            Save
+            {tr("Save", "ບັນທຶກ")}
           </button>
         )}
         {canDelete && (
           <button type="button" className="mini-btn flag" onClick={remove} disabled={del.isPending}>
-            🗑 Remove
+            {tr("🗑 Remove", "🗑 ລົບອອກ")}
           </button>
         )}
       </td>
@@ -245,30 +246,29 @@ function PropertiesSection() {
     try {
       await create.mutateAsync(n);
       setName("");
-      dialogs.success("Property added", `${n} can now be chosen for employees and scanners.`);
+      dialogs.success(tr("Property added", "ເພີ່ມຣີສອດແລ້ວ"), tr(`${n} can now be chosen for employees and scanners.`, `ເລືອກ ${n} ໃຫ້ພະນັກງານ ແລະ ເຄື່ອງສະແກນໄດ້ແລ້ວ.`));
     } catch (err) {
-      dialogs.error("Could not add property", err);
+      dialogs.error(tr("Could not add property", "ເພີ່ມຣີສອດບໍ່ສຳເລັດ"), err);
     }
   }
 
   return (
     <>
-      <SectionHead title="Properties" />
+      <SectionHead title={tr("Properties", "ຣີສອດ")} />
       <Lede>
-        The resorts of the group. Renaming one keeps its employees, scanners and outlets linked to it. A property can be closed once no
-        employee or scanner is left there; a closed one disappears from every list until it is reopened.
+        {tr("The resorts of the group. Renaming one keeps its employees, scanners and outlets linked to it. A property can be closed once no employee or scanner is left there; a closed one disappears from every list until it is reopened.", "ຣີສອດຂອງກຸ່ມ. ປ່ຽນຊື່ແລ້ວ ພະນັກງານ, ເຄື່ອງສະແກນ ແລະ outlet ຍັງຕິດຢູ່ຄືເກົ່າ. ປິດໄດ້ເມື່ອບໍ່ມີພະນັກງານ ແລະ ເຄື່ອງເຫຼືອ; ຣີສອດທີ່ປິດຈະບໍ່ສະແດງ ຈົນກວ່າຈະເປີດຄືນ.")}
       </Lede>
       <div className="land-row">
-        <Field label="New property" grow={2}>
-          <input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} placeholder="e.g. Nampien Yorlapa" />
+        <Field label={tr("New property", "ຣີສອດໃໝ່")} grow={2}>
+          <input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} placeholder={tr("e.g. Nampien Yorlapa", "ເຊັ່ນ Nampien Yorlapa")} />
         </Field>
         <button type="button" className="submit-btn" onClick={add} disabled={create.isPending || !name.trim()}>
-          + Add property
+          {tr("+ Add property", "+ ເພີ່ມຣີສອດ")}
         </button>
       </div>
       <DataState loading={all.isLoading} error={all.error}>
-        <Table head={["Property", "Employees", "Scanners", "Status", ""]}>
-          {(all.data ?? []).length === 0 && <EmptyRow cols={5}>No properties yet.</EmptyRow>}
+        <Table head={[tr("Property", "ຣີສອດ"), tr("Employees", "ພະນັກງານ"), tr("Scanners", "ເຄື່ອງສະແກນ"), tr("Status", "ສະຖານະ"), ""]}>
+          {(all.data ?? []).length === 0 && <EmptyRow cols={5}>{tr("No properties yet.", "ຍັງບໍ່ມີຣີສອດ.")}</EmptyRow>}
           {all.data?.map((p) => (
             <PropertyRow key={`${p.id}:${p.name}:${p.is_active}`} property={p} />
           ))}
@@ -289,18 +289,18 @@ function PropertyRow({ property }: { property: PropertyAdmin }) {
   async function save() {
     try {
       await rename.mutateAsync({ id: property.id, name: name.trim() });
-      dialogs.success("Property renamed", `${property.name} is now ${name.trim()}.`);
+      dialogs.success(tr("Property renamed", "ປ່ຽນຊື່ຣີສອດແລ້ວ"), `${property.name} is now ${name.trim()}.`);
     } catch (err) {
-      dialogs.error("Could not rename", err);
+      dialogs.error(tr("Could not rename", "ປ່ຽນຊື່ບໍ່ສຳເລັດ"), err);
     }
   }
 
   async function toggle() {
-    if (property.is_active && !window.confirm(`Close ${property.name}? It disappears from every list until reopened.`)) return;
+    if (property.is_active && !window.confirm(tr(`Close ${property.name}? It disappears from every list until reopened.`, `ປິດ ${property.name}? ຈະຫາຍຈາກທຸກລາຍການ ຈົນກວ່າຈະເປີດຄືນ.`))) return;
     try {
       await setActive.mutateAsync({ id: property.id, is_active: !property.is_active });
     } catch (err) {
-      dialogs.error(property.is_active ? "Could not close" : "Could not reopen", err);
+      dialogs.error(property.is_active ? tr("Could not close", "ປິດບໍ່ສຳເລັດ") : tr("Could not reopen", "ເປີດຄືນບໍ່ສຳເລັດ"), err);
     }
   }
 
@@ -311,15 +311,15 @@ function PropertyRow({ property }: { property: PropertyAdmin }) {
       </td>
       <td className="mono">{property.employees}</td>
       <td className="mono">{property.scanners}</td>
-      <td>{property.is_active ? <Tag kind="ok">Open</Tag> : <Tag kind="muted">Closed</Tag>}</td>
+      <td>{property.is_active ? <Tag kind="ok">{tr("Open", "ເປີດ")}</Tag> : <Tag kind="muted">{tr("Closed", "ປິດແລ້ວ")}</Tag>}</td>
       <td style={{ whiteSpace: "nowrap" }}>
         {dirty && (
           <button type="button" className="mini-btn" onClick={save} disabled={rename.isPending}>
-            Save
+            {tr("Save", "ບັນທຶກ")}
           </button>
         )}
         <button type="button" className={`mini-btn${property.is_active ? " flag" : ""}`} onClick={toggle} disabled={setActive.isPending}>
-          {property.is_active ? "Close" : "Reopen"}
+          {property.is_active ? tr("Close", "ປິດ") : tr("Reopen", "ເປີດຄືນ")}
         </button>
       </td>
     </tr>

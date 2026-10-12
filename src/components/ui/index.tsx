@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { errorMessage } from "@/lib/api";
-import { useLang } from "@/lib/i18n";
+import { tr, useLang } from "@/lib/i18n";
 
 export { Modal } from "./Modal";
 export { DialogProvider, useDialogs } from "./Dialogs";
@@ -52,10 +52,10 @@ export function Tag({ kind, children }: { kind: TagKind; children: ReactNode }) 
 /** Approval status → coloured tag */
 export function StatusTag({ status }: { status: string }) {
   const s = status.toLowerCase();
-  if (s === "approved") return <Tag kind="ok">Approved</Tag>;
-  if (s === "denied" || s === "rejected") return <Tag kind="low">Denied</Tag>;
-  if (s === "cancelled") return <Tag kind="muted">Cancelled</Tag>;
-  return <Tag kind="pending">Pending</Tag>;
+  if (s === "approved") return <Tag kind="ok">{tr("Approved", "ອະນຸມັດແລ້ວ")}</Tag>;
+  if (s === "denied" || s === "rejected") return <Tag kind="low">{tr("Denied", "ປະຕິເສດ")}</Tag>;
+  if (s === "cancelled") return <Tag kind="muted">{tr("Cancelled", "ຍົກເລີກ")}</Tag>;
+  return <Tag kind="pending">{tr("Pending", "ລໍຖ້າອະນຸມັດ")}</Tag>;
 }
 
 export function Kpi({ label, value, dark }: { label: ReactNode; value: ReactNode; dark?: boolean }) {

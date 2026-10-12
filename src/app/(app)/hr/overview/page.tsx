@@ -1,7 +1,7 @@
 "use client";
 
 import { DataState, EmptyRow, Kpi, Lede, SectionHead, Table } from "@/components/ui";
-import { useLang } from "@/lib/i18n";
+import { useLang, tr } from "@/lib/i18n";
 import { num } from "@/lib/format";
 import { useOverview } from "@/features/hr/api";
 
@@ -16,16 +16,16 @@ export default function OverviewPage() {
         {d && (
           <>
             <div className="kpi-row">
-              <Kpi label="Total employees" value={d.total_employees} />
-              <Kpi label="Resignations (all time)" value={d.resignations} />
-              <Kpi label="Turnover rate" value={`${num(d.turnover_rate)}%`} />
-              <Kpi label="Total job openings" value={d.total_openings} />
+              <Kpi label={tr("Total employees", "ພະນັກງານທັງໝົດ")} value={d.total_employees} />
+              <Kpi label={tr("Resignations (all time)", "ຈຳນວນຄົນລາອອກ (ທັງໝົດ)")} value={d.resignations} />
+              <Kpi label={tr("Turnover rate", "ອັດຕາການລາອອກ")} value={`${num(d.turnover_rate)}%`} />
+              <Kpi label={tr("Total job openings", "ຕຳແໜ່ງວ່າງທັງໝົດ")} value={d.total_openings} />
             </div>
             <div className="card">
-              <h3>Job openings by department</h3>
-              <Lede>How many more people each department needs to reach its quota.</Lede>
-              <Table head={["Department", "Quota", "Filled", "Openings"]}>
-                {d.openings.length === 0 && <EmptyRow cols={4}>No departments yet.</EmptyRow>}
+              <h3>{tr("Job openings by department", "ຕຳແໜ່ງວ່າງ ຕາມພະແນກ")}</h3>
+              <Lede>{tr("How many more people each department needs to reach its quota.", "ແຕ່ລະພະແນກຍັງຕ້ອງການອີກຈັກຄົນ ຈຶ່ງຄົບໂຄຕາ.")}</Lede>
+              <Table head={[tr("Department", "ພະແນກ"), tr("Quota", "ໂຄຕາ"), tr("Filled", "ມີແລ້ວ"), tr("Openings", "ຕຳແໜ່ງວ່າງ")]}>
+                {d.openings.length === 0 && <EmptyRow cols={4}>{tr("No departments yet.", "ຍັງບໍ່ມີພະແນກ.")}</EmptyRow>}
                 {d.openings.map((o) => (
                   <tr key={o.department}>
                     <td>{o.department}</td>

@@ -2,7 +2,7 @@
 
 import { Suspense, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LangToggle, useLang } from "@/lib/i18n";
+import { LangToggle, useLang, tr } from "@/lib/i18n";
 
 function LoginForm() {
   const { t } = useLang();
@@ -25,7 +25,7 @@ function LoginForm() {
         body: JSON.stringify({ username, password, business_slug: business }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error ?? "Sign-in failed");
+      if (!res.ok) throw new Error(data.error ?? tr("Sign-in failed", "ເຂົ້າລະບົບບໍ່ສຳເລັດ"));
       // only allow same-site relative redirects
       router.replace(next.startsWith("/") && !next.startsWith("//") ? next : "/hr");
       router.refresh();
@@ -46,7 +46,7 @@ function LoginForm() {
       {error && <div className="form-error">{error}</div>}
       <div className="field">
         <label htmlFor="biz">{t("business")}</label>
-        <input id="biz" value={business} onChange={(e) => setBusiness(e.target.value)} placeholder="e.g. yorlapa-cafe" autoComplete="organization" />
+        <input id="biz" value={business} onChange={(e) => setBusiness(e.target.value)} placeholder={tr("e.g. yorlapa-cafe", "ເຊັ່ນ yorlapa-cafe")} autoComplete="organization" />
       </div>
       <div className="field">
         <label htmlFor="user">{t("username")}</label>

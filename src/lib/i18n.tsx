@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useSyncExternalStore, type ReactNode } from "react";
+import { createContext, Fragment, useCallback, useContext, useEffect, useSyncExternalStore, type ReactNode } from "react";
 
 /**
  * EN / ລາວ switch, same behaviour as the prototype's lang toggle.
@@ -174,8 +174,24 @@ function subscribeLang(cb: () => void) {
   };
 }
 
+// The language being rendered, for tr() below. Set by LangProvider on every render.
+let activeLang: Lang = "en";
+const useActiveLang = (l: Lang) => {
+  activeLang = l;
+};
+
+/**
+ * Inline translation: tr("Save", "ບັນທຶກ"). Works in components, helpers and
+ * event handlers. Switching language remounts the app (LangProvider keys its
+ * children by language), so every tr() call re-runs.
+ */
+export function tr(en: string, lo: string): string {
+  return activeLang === "lo" ? lo : en;
+}
+
 export function LangProvider({ children }: { children: ReactNode }) {
   const lang = useSyncExternalStore<Lang>(subscribeLang, readLang, () => "en");
+  useActiveLang(lang);
 
   useEffect(() => {
     document.body.classList.toggle("lang-lo", lang === "lo");
@@ -190,7 +206,11 @@ export function LangProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const t = useCallback((k: TKey) => dict[lang][k] ?? dict.en[k], [lang]);
-  return <LangContext.Provider value={{ lang, setLang, t }}>{children}</LangContext.Provider>;
+  return (
+    <LangContext.Provider value={{ lang, setLang, t }}>
+      <Fragment key={lang}>{children}</Fragment>
+    </LangContext.Provider>
+  );
 }
 
 export function useLang() {

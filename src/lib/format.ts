@@ -1,7 +1,10 @@
 /** Formatting helpers matching the prototype's display conventions. */
+import { tr } from "./i18n";
 
 const TZ = "Asia/Vientiane";
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTHS_LONG = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const MONTHS_LO = ["ມັງກອນ", "ກຸມພາ", "ມີນາ", "ເມສາ", "ພຶດສະພາ", "ມິຖຸນາ", "ກໍລະກົດ", "ສິງຫາ", "ກັນຍາ", "ຕຸລາ", "ພະຈິກ", "ທັນວາ"];
 
 /** 3200000 → "₭ 3,200,000" */
 export function lak(n: number | null | undefined): string {
@@ -13,13 +16,14 @@ export function fmtDate(iso: string | null | undefined): string {
   if (!iso) return "—";
   const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
   if (!y || !m || !d) return iso;
-  return `${d} ${MONTHS[m - 1]} ${y}`;
+  return `${d} ${tr(MONTHS[m - 1], MONTHS_LO[m - 1])} ${y}`;
 }
 
 /** "2026-08" → "August 2026" */
 export function fmtMonth(ym: string): string {
   const [y, m] = ym.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, 1)).toLocaleString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
+  if (!y || !m) return ym;
+  return `${tr(MONTHS_LONG[m - 1], MONTHS_LO[m - 1])} ${y}`;
 }
 
 /** ISO timestamp → "07:58" in Vientiane time. Null → "—" */

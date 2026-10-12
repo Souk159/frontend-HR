@@ -1,11 +1,12 @@
 import { Tag } from "@/components/ui";
+import { tr } from "@/lib/i18n";
 import type { Approval } from "../types";
 import { ROLE_LABELS } from "../utils";
 
-/** Who still has to sign a pending request (Approval Rule snapshot): "GM or COO" / "GM and COO ✓GM". */
+/** Who still has to sign a pending request (Approval Rule snapshot): tr("GM or COO", "GM ຫຼື COO") / "GM and COO ✓GM". */
 export function NeedsCell({ a }: { a: Approval }) {
   const signed = new Set(a.approvals.map((s) => s.role));
-  const sep = a.mode === "all" ? " and " : " or ";
+  const sep = a.mode === "all" ? tr(" and ", " ແລະ ") : tr(" or ", " ຫຼື ");
   return (
     <span style={{ display: "inline-flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
       {a.required_roles.map((r, i) => (

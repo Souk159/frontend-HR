@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Avatar, DataState, EmptyRow, Field, Lede, SectionHead, Table, Tag, photoSrc } from "@/components/ui";
-import { useLang } from "@/lib/i18n";
+import { useLang, tr } from "@/lib/i18n";
 import { fmtDate, fmtTime, hoursBetween, num, today } from "@/lib/format";
 import { useAttendance, useDepartments, useProperties, useStaff } from "@/features/hr/api";
 import type { Attendance } from "@/features/hr/types";
@@ -49,12 +49,12 @@ export default function AttendancePage() {
     <div className="subview">
       <SectionHead title={`${t("sh_attendance_today")} — ${fmtDate(date)}`} />
       <div className="land-row">
-        <Field label="Date">
+        <Field label={tr("Date", "ວັນທີ")}>
           <input type="date" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} />
         </Field>
-        <Field label="Property">
+        <Field label={tr("Property", "ຣີສອດ")}>
           <select value={propertyId} onChange={(e) => setPropertyId(e.target.value)}>
-            <option value="">All properties (group)</option>
+            <option value="">{tr("All properties (group)", "ທຸກຣີສອດ (ທັງກຸ່ມ)")}</option>
             {props.data?.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -64,10 +64,13 @@ export default function AttendancePage() {
         </Field>
       </div>
       <Lede>
-        Tap a photo to compare the profile photo with the face photos the scanner took.{" "}
-        <span className="c-clay bold">Red</span> = under that department&apos;s standard hours for the day.{" "}
-        <span className="c-moss bold">Green</span> = on time or overtime, with OT hours shown. Each time shows the scanner (and property) that
-        recorded it.
+        {tr("Tap a photo to compare the profile photo with the face photos the scanner took.", "ກົດຮູບ ເພື່ອປຽບທຽບຮູບໂປຣໄຟລ໌ກັບຮູບທີ່ເຄື່ອງສະແກນຖ່າຍ.")}{" "}
+        <span className="c-clay bold">{tr("Red", "ສີແດງ")}</span> = {tr("under that department's standard hours for the day.", "ບໍ່ຄົບຊົ່ວໂມງມາດຕະຖານຂອງມື້.")}{" "}
+        <span className="c-moss bold">{tr("Green", "ສີຂຽວ")}</span> ={" "}
+        {tr(
+          "on time or overtime, with OT hours shown. Each time shows the scanner (and property) that recorded it.",
+          "ຄົບ ຫຼື ມີ OT (ສະແດງຊົ່ວໂມງ OT). ແຕ່ລະເວລາ ສະແດງເຄື່ອງສະແກນ (ແລະ ຣີສອດ) ທີ່ບັນທຶກ.",
+        )}
       </Lede>
       <DataState loading={att.isLoading || staff.isLoading} error={att.error || staff.error}>
         {groups.length === 0 && <p className="empty">No attendance for {fmtDate(date)}.</p>}
@@ -76,7 +79,7 @@ export default function AttendancePage() {
           return (
             <div className="card" key={dept}>
               <h3 style={{ fontSize: 14 }}>{dept}</h3>
-              <Table head={["Name", "Home property", "Clock in", "Clock out", "Scan photos", "Hours today", "OT hours", "Status"]}>
+              <Table head={[tr("Name", "ຊື່"), tr("Home property", "ຣີສອດຂອງຕົນ"), tr("Clock in", "ເວລາເຂົ້າ"), tr("Clock out", "ເວລາອອກ"), tr("Scan photos", "ຮູບຕອນສະແກນ"), tr("Hours today", "ຊົ່ວໂມງມື້ນີ້"), tr("OT hours", "ຊົ່ວໂມງ OT"), tr("Status", "ສະຖານະ")]}>
                 {recs.length === 0 && <EmptyRow cols={8}>—</EmptyRow>}
                 {recs.map((r) => {
                   const hours = hoursBetween(r.check_in, r.check_out);
@@ -94,7 +97,7 @@ export default function AttendancePage() {
                       <td className="mono">
                         {fmtTime(r.check_in)}
                         {r.check_in_device && <div className="hint">{r.check_in_device}</div>}
-                        {r.is_manual && <Tag kind="muted">Manual</Tag>}
+                        {r.is_manual && <Tag kind="muted">{tr("Manual", "ໃສ່ດ້ວຍມື")}</Tag>}
                       </td>
                       <td className="mono">
                         {fmtTime(r.check_out)}
@@ -121,13 +124,13 @@ export default function AttendancePage() {
                       <td className={`mono ${ot > 0 ? "c-moss bold" : ""}`}>{ot > 0 ? `${num(ot)}h` : "—"}</td>
                       <td>
                         {r.missing ? (
-                          <Tag kind="muted">No scan</Tag>
+                          <Tag kind="muted">{tr("No scan", "ບໍ່ໄດ້ສະແກນ")}</Tag>
                         ) : !r.check_in ? (
-                          <Tag kind="low">No check-in scan</Tag>
+                          <Tag kind="low">{tr("No check-in scan", "ບໍ່ໄດ້ສະແກນເຂົ້າ")}</Tag>
                         ) : r.check_out ? (
-                          <Tag kind="ok">Completed</Tag>
+                          <Tag kind="ok">{tr("Completed", "ຄົບແລ້ວ")}</Tag>
                         ) : (
-                          <Tag kind="ok">On shift</Tag>
+                          <Tag kind="ok">{tr("On shift", "ກຳລັງເຮັດວຽກ")}</Tag>
                         )}{" "}
                         {r.at_other_property && <Tag kind="pending">Scanned at {r.scan_property}</Tag>}
                       </td>

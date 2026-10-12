@@ -2,13 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { Avatar, DataState, EmptyRow, Field, Lede, SectionHead, Table, Tag, useDialogs } from "@/components/ui";
-import { useLang } from "@/lib/i18n";
+import { useLang, tr } from "@/lib/i18n";
 import { fmtDate, lak } from "@/lib/format";
 import { useDepartments, useProperties, useRequestDepartmentChanges, useStaff } from "@/features/hr/api";
 import { EmployeeFormModal } from "@/features/hr/components/EmployeeFormModal";
 import { NewDepartmentForm } from "@/features/hr/components/NewDepartmentForm";
 import type { Staff } from "@/features/hr/types";
-import { batchOutcome, groupByDept, matchesSearch } from "@/features/hr/utils";
+import { batchOutcome, deptLabel, groupByDept, matchesSearch } from "@/features/hr/utils";
 import { ResignModal } from "@/features/hr/components/ResignModal";
 
 export default function DirectoryPage() {
@@ -48,13 +48,13 @@ export default function DirectoryPage() {
         return { department_id: d.id, quota, base_salary: base };
       })
       .filter((c): c is NonNullable<typeof c> => c !== null);
-    if (changes.length === 0) return dialogs.error("No change", new Error("No changes to save."));
+    if (changes.length === 0) return dialogs.error(tr("No change", "ບໍ່ມີການປ່ຽນແປງ"), new Error(tr("No changes to save.", "ບໍ່ມີຫຍັງໃຫ້ບັນທຶກ.")));
     try {
       const r = await saveChanges.mutateAsync(changes);
       setDrafts({});
-      dialogs.success(...batchOutcome(r, "change(s)"));
+      dialogs.success(...batchOutcome(r, tr("change(s)", "ການປ່ຽນແປງ")));
     } catch (err) {
-      dialogs.error("Could not send requests", err);
+      dialogs.error(tr("Could not send requests", "ສົ່ງຄຳຂໍບໍ່ສຳເລັດ"), err);
     }
   }
 
@@ -63,12 +63,12 @@ export default function DirectoryPage() {
     <div className="subview">
       <SectionHead title={t("sh_employee_directory")} />
       <div className="land-row">
-        <Field label="Search" grow={2}>
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, ID, department, position or property..." />
+        <Field label={tr("Search", "ຄົ້ນຫາ")} grow={2}>
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={tr("Search name, ID, department, position or property...", "ຄົ້ນຫາ ຊື່, ລະຫັດ, ພະແນກ, ຕຳແໜ່ງ ຫຼື ຣີສອດ...")} />
         </Field>
-        <Field label="Property">
+        <Field label={tr("Property", "ຣີສອດ")}>
           <select value={propertyId} onChange={(e) => setPropertyId(e.target.value)}>
-            <option value="">All properties (group)</option>
+            <option value="">{tr("All properties (group)", "ທຸກຣີສອດ (ທັງກຸ່ມ)")}</option>
             {props.data?.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -77,49 +77,49 @@ export default function DirectoryPage() {
           </select>
         </Field>
         <button type="button" className="mini-btn" onClick={() => setShowNewDept((v) => !v)}>
-          + Create department
+          {tr("+ Create department", "+ ສ້າງພະແນກ")}
         </button>
         <button type="button" className="submit-btn" onClick={saveAll} disabled={saveChanges.isPending}>
           {t("save_all")}
         </button>
         <button type="button" className="submit-btn" onClick={() => setEditing("new")}>
-          + Add new employee
+          {tr("+ Add new employee", "+ ເພີ່ມພະນັກງານໃໝ່")}
         </button>
       </div>
 
       {showNewDept && <NewDepartmentForm onDone={() => setShowNewDept(false)} />}
 
       <DataState loading={staff.isLoading || depts.isLoading} error={staff.error || depts.error}>
-        {groups.length === 0 && <p className="empty">No departments yet — create one above; it becomes usable after GM/COO approval.</p>}
+        {groups.length === 0 && <p className="empty">{tr("No departments yet — create one above; it becomes usable once approved.", "ຍັງບໍ່ມີພະແນກ — ສ້າງຢູ່ເທິງ; ໃຊ້ໄດ້ເມື່ອອະນຸມັດແລ້ວ.")}</p>}
         {groups.map(([name, rows]) => {
           const d = deptByName.get(name);
           const dr = d ? drafts[d.id] ?? {} : {};
           return (
             <div className="card" key={name}>
               <h3 className="card-head">
-                <span>{name}</span>
+                <span>{deptLabel(name)}</span>
                 {d && (
                   <span className="meta">
-                    Filled {d.filled} / Quota
+                    {tr("Filled", "ມີແລ້ວ")} {d.filled} / {tr("Quota", "ໂຄຕາ")}
                     <input
                       className="inline-input"
                       style={{ width: 48, textAlign: "center" }}
                       value={dr.quota ?? String(d.quota)}
                       onChange={(e) => setDrafts((p) => ({ ...p, [d.id]: { ...p[d.id], quota: e.target.value } }))}
                     />
-                    &nbsp;·&nbsp;Base/min salary ₭
+                    &nbsp;·&nbsp;{tr("Base/min salary", "ເງິນເດືອນພື້ນຖານ")} ₭
                     <input
                       className="inline-input"
                       style={{ width: 100, textAlign: "right" }}
                       value={dr.base_salary ?? String(d.base_salary)}
                       onChange={(e) => setDrafts((p) => ({ ...p, [d.id]: { ...p[d.id], base_salary: e.target.value } }))}
                     />
-                    <span title="Used to calculate this department's quota bonus">ⓘ</span>
+                    <span title={tr("Used to calculate this department's quota bonus", "ໃຊ້ຄິດໂບນັດໂຄຕາຂອງພະແນກ")}>ⓘ</span>
                   </span>
                 )}
               </h3>
-              <Table head={["ID", "Name", "Position", "Property", "Hire date", "Base salary", "Last salary change", "Scanner PIN", "Status", ""]}>
-                {rows.length === 0 && <EmptyRow cols={10}>No employees in this department yet.</EmptyRow>}
+              <Table head={[tr("ID", "ລະຫັດ"), tr("Name", "ຊື່"), tr("Position", "ຕຳແໜ່ງ"), tr("Property", "ຣີສອດ"), tr("Hire date", "ວັນເຂົ້າວຽກ"), tr("Base salary", "ເງິນເດືອນ"), tr("Last salary change", "ປັບເງິນເດືອນລ່າສຸດ"), tr("Scanner PIN", "PIN ສະແກນ"), tr("Status", "ສະຖານະ"), ""]}>
+                {rows.length === 0 && <EmptyRow cols={10}>{tr("No employees in this department yet.", "ພະແນກນີ້ຍັງບໍ່ມີພະນັກງານ.")}</EmptyRow>}
                 {rows.map((e) => (
                   <tr key={e.user_id}>
                     <td className="mono">{e.employee_no || "—"}</td>
@@ -138,13 +138,13 @@ export default function DirectoryPage() {
                     <td className="mono">{lak(e.base_salary)}</td>
                     <td>{fmtDate(e.last_salary_change)}</td>
                     <td className="mono">{e.scanner_pin || <span className="c-soft">—</span>}</td>
-                    <td>{e.status === "on_leave" ? <Tag kind="pending">On leave</Tag> : <Tag kind="ok">Active</Tag>}</td>
+                    <td>{e.status === "on_leave" ? <Tag kind="pending">{tr("On leave", "ລາພັກ")}</Tag> : <Tag kind="ok">{tr("Active", "ເຮັດວຽກ")}</Tag>}</td>
                     <td style={{ whiteSpace: "nowrap" }}>
                       <button type="button" className="mini-btn" onClick={() => setEditing(e)}>
-                        Edit
+                        {tr("Edit", "ແກ້ໄຂ")}
                       </button>
                       <button type="button" className="mini-btn flag" onClick={() => setResigning(e)}>
-                        Resignation
+                        {tr("Resignation", "ລາອອກ")}
                       </button>
                     </td>
                   </tr>
@@ -155,8 +155,10 @@ export default function DirectoryPage() {
         })}
       </DataState>
       <Lede>
-        Quota and base salary above are the only things editable directly on this page — everything else about an employee goes through
-        Edit, and goes through the Approval Rule. Adding a new employee is immediate.
+        {tr(
+          tr("Quota and base salary above are the only things editable directly on this page — everything else about an employee goes through Edit, and goes through the Approval Rule. Adding a new employee is immediate.", "ໂຄຕາ ແລະ ເງິນເດືອນພື້ນຖານ ແມ່ນສິ່ງດຽວທີ່ແກ້ໄດ້ໂດຍກົງໃນໜ້ານີ້ — ຂໍ້ມູນອື່ນແກ້ຜ່ານປຸ່ມ ແກ້ໄຂ ແລະ ຕ້ອງຜ່ານການອະນຸມັດ. ການເພີ່ມພະນັກງານໃໝ່ມີຜົນທັນທີ."),
+          "ໂຄຕາ ແລະ ເງິນເດືອນພື້ນຖານຂ້າງເທິງ ແມ່ນສິ່ງດຽວທີ່ແກ້ໄດ້ໂດຍກົງໃນໜ້ານີ້ — ຂໍ້ມູນອື່ນຂອງພະນັກງານ ແກ້ຜ່ານປຸ່ມ ແກ້ໄຂ ແລະ ຕ້ອງຜ່ານການອະນຸມັດ. ການເພີ່ມພະນັກງານໃໝ່ມີຜົນທັນທີ.",
+        )}
       </Lede>
 
       <EmployeeFormModal editing={editing} onClose={() => setEditing(null)} />

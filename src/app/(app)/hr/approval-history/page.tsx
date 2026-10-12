@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { DataState, EmptyRow, Lede, SectionHead, StatusTag, Table } from "@/components/ui";
-import { useLang } from "@/lib/i18n";
+import { useLang, tr } from "@/lib/i18n";
 import { useApprovals, useHRAccess } from "@/features/hr/api";
 import { ApprovalDetailModal } from "@/features/hr/components/ApprovalDetailModal";
 import { approvalChange, approvalLabel, fmtStamp } from "@/features/hr/utils";
@@ -16,10 +16,10 @@ export default function ApprovalHistoryPage() {
   return (
     <div className="subview">
       <SectionHead title={t("sh_approval_history")} />
-      <Lede>Every salary, quota, and work-rules request ever submitted — approved, denied, or still pending — with the exact before/after values.</Lede>
+      <Lede>{tr("Every salary, quota, and work-rules request ever submitted — approved, denied, or still pending — with the exact before/after values.", "ທຸກຄຳຂໍທີ່ເຄີຍສົ່ງ — ອະນຸມັດ, ປະຕິເສດ ຫຼື ຍັງລໍຖ້າ — ພ້ອມຄ່າກ່ອນ ແລະ ຫຼັງ.")}</Lede>
       <DataState loading={all.isLoading} error={all.error}>
-        <Table head={["Type", "Target", "Change", "Requested", "Status", "Reviewed"]}>
-          {(all.data ?? []).length === 0 && <EmptyRow cols={6}>No requests submitted yet.</EmptyRow>}
+        <Table head={[tr("Type", "ປະເພດ"), tr("Target", "ເປົ້າໝາຍ"), tr("Change", "ການປ່ຽນ"), tr("Requested", "ຂໍເມື່ອ"), tr("Status", "ສະຖານະ"), tr("Reviewed", "ພິຈາລະນາເມື່ອ")]}>
+          {(all.data ?? []).length === 0 && <EmptyRow cols={6}>{tr("No requests submitted yet.", "ຍັງບໍ່ມີຄຳຂໍ.")}</EmptyRow>}
           {all.data?.map((a) => (
             <tr key={a.id} className="clickable" onClick={() => setOpen(a.id)}>
               <td>{approvalLabel(a.type)}</td>

@@ -4,10 +4,10 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { LangToggle, useLang } from "@/lib/i18n";
+import { LangToggle, useLang, tr } from "@/lib/i18n";
 import { DataState } from "@/components/ui";
 import { useApprovals, useHRAccess } from "@/features/hr/api";
-import { allowedNav, NAV_GROUPS } from "@/features/hr/nav";
+import { allowedNav, homeHref, NAV_GROUPS } from "@/features/hr/nav";
 import { ChangePasswordModal } from "@/features/hr/components/ChangePasswordModal";
 
 /** Topbar + grouped left sidebar of the HR module; screens are filtered by role / coordinator grants. */
@@ -25,10 +25,10 @@ export function HRShell({ children }: { children: ReactNode }) {
   const [pwOpen, setPwOpen] = useState(false);
   const current = nav.find((n) => pathname.startsWith(n.href));
 
-  // /hr → first tab this user may open; a tab they may not open → first allowed
+  // /hr → the user's home (COO/CEO: Overview, others: first tab); a tab they may not open → home too
   useEffect(() => {
     if (!access.data || nav.length === 0) return;
-    if (!nav.some((n) => pathname.startsWith(n.href))) router.replace(nav[0].href);
+    if (!nav.some((n) => pathname.startsWith(n.href))) router.replace(homeHref(access.data, nav));
   }, [access.data, nav, pathname, router]);
 
   async function signOut() {
@@ -117,7 +117,7 @@ export function HRShell({ children }: { children: ReactNode }) {
             </div>
           ) : nav.length === 0 ? (
             <div className="subview empty">
-              No HR tab has been granted to you yet — ask the HR Manager (Manage HR Access).
+              {tr("No HR tab has been granted to you yet — ask the HR Manager (Manage HR Access).", "ທ່ານຍັງບໍ່ໄດ້ຮັບສິດເຂົ້າໜ້າໃດ — ຂໍ HR Manager (ໜ້າ ຈັດການສິດ HR).")}
             </div>
           ) : (
             children

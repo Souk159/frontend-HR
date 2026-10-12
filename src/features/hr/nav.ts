@@ -50,6 +50,15 @@ export const HR_NAV: NavItem[] = [
   { href: "/hr/scanners", label: "tb_scanners", icon: "📟", group: "settings", needs: "can_manage_access" },
 ];
 
+/** Roles that land on the HR Overview dashboard after signing in. */
+const OVERVIEW_FIRST = ["coo", "ceo"];
+
+/** Where /hr sends the signed-in user: COO/CEO see the overview first, everyone else their first tab. */
+export function homeHref(access: HRAccess, nav: NavItem[]): string {
+  if (OVERVIEW_FIRST.includes(access.role) && nav.some((n) => n.href === "/hr/overview")) return "/hr/overview";
+  return nav[0].href;
+}
+
 export function allowedNav(access: HRAccess | undefined): NavItem[] {
   if (!access) return [];
   return HR_NAV.filter((n) =>

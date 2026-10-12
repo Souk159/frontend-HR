@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { DataState, EmptyRow, Lede, SectionHead, Table, useDialogs } from "@/components/ui";
-import { useLang } from "@/lib/i18n";
+import { useLang, tr } from "@/lib/i18n";
 import { useApprovals, useDecideApproval } from "@/features/hr/api";
 import { ApprovalDetailModal } from "@/features/hr/components/ApprovalDetailModal";
 import type { Approval } from "@/features/hr/types";
@@ -22,7 +22,7 @@ export default function HRApprovalsPage() {
       const r = await decide.mutateAsync({ id: a.id, decision });
       dialogs.success(...decisionMessage(a, r.status));
     } catch (err) {
-      dialogs.error("Could not complete", err);
+      dialogs.error(tr("Could not complete", "ດຳເນີນການບໍ່ສຳເລັດ"), err);
     }
   }
 
@@ -30,12 +30,11 @@ export default function HRApprovalsPage() {
     <div className="dash-wrap">
       <SectionHead title={t("sh_pending_hr_approvals")} />
       <Lede>
-        Requests waiting for sign-off. Who has to approve each kind of request — and whether one of them is enough or all of them are
-        needed — is set on the Approval Rule page.
+        {tr("Requests waiting for sign-off. Who has to approve each kind of request — and whether one of them is enough or all of them are needed — is set on the Approval Rule page.", "ຄຳຂໍທີ່ລໍຖ້າອະນຸມັດ. ໃຜຕ້ອງອະນຸມັດ — ແລະ ຄົນດຽວພໍ ຫຼື ຕ້ອງທຸກຄົນ — ກຳນົດໃນໜ້າ ກົດການອະນຸມັດ.")}
       </Lede>
       <DataState loading={pending.isLoading} error={pending.error}>
-        <Table head={["Type", "Target", "Change", "Requested", "Needs", ""]}>
-          {(pending.data ?? []).length === 0 && <EmptyRow cols={6}>No pending requests right now.</EmptyRow>}
+        <Table head={[tr("Type", "ປະເພດ"), tr("Target", "ເປົ້າໝາຍ"), tr("Change", "ການປ່ຽນ"), tr("Requested", "ຂໍເມື່ອ"), tr("Needs", "ຕ້ອງການ"), ""]}>
+          {(pending.data ?? []).length === 0 && <EmptyRow cols={6}>{tr("No pending requests right now.", "ບໍ່ມີຄຳຂໍທີ່ລໍຖ້າ.")}</EmptyRow>}
           {pending.data?.map((a) => (
             <tr key={a.id}>
               <td>{approvalLabel(a.type)}</td>
@@ -53,7 +52,7 @@ export default function HRApprovalsPage() {
               <td>
                 <span className="approve-actions">
                   <button type="button" className="mini-btn" onClick={() => setOpen(a.id)}>
-                    View detail
+                    {tr("View detail", "ເບິ່ງລາຍລະອຽດ")}
                   </button>
                   {a.can_decide && (
                     <>
