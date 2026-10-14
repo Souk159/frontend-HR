@@ -23,7 +23,10 @@ export default function ApprovalHistoryPage() {
           {all.data?.map((a) => (
             <tr key={a.id} className="clickable" onClick={() => setOpen(a.id)}>
               <td>{approvalLabel(a.type)}</td>
-              <td>{a.target}</td>
+              <td>
+                {a.target}
+                {a.property && <div className="hint">{a.property}</div>}
+              </td>
               <td className="mono" style={{ fontSize: 10.5 }}>
                 {approvalChange(a)}
               </td>

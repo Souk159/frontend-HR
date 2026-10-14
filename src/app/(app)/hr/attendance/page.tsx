@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Avatar, DataState, EmptyRow, Field, Lede, SectionHead, Table, Tag, photoSrc } from "@/components/ui";
 import { useLang, tr } from "@/lib/i18n";
 import { fmtDate, fmtTime, hoursBetween, num, today } from "@/lib/format";
-import { useAttendance, useDepartments, useProperties, useStaff } from "@/features/hr/api";
+import { useAttendance, useDepartments, useMyResort, useProperties, useStaff } from "@/features/hr/api";
 import type { Attendance } from "@/features/hr/types";
 import { groupByDept } from "@/features/hr/utils";
 import { ScanPhotosModal } from "@/features/hr/components/ScanPhotosModal";
@@ -19,6 +19,7 @@ export default function AttendancePage() {
   const depts = useDepartments();
   const staff = useStaff();
   const props = useProperties();
+  const mine = useMyResort(); // a resort account only ever sees its own resort
   const [viewing, setViewing] = useState<Row | null>(null);
 
   const rows: Row[] = useMemo(() => {
@@ -52,16 +53,18 @@ export default function AttendancePage() {
         <Field label={tr("Date", "ວັນທີ")}>
           <input type="date" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} />
         </Field>
-        <Field label={tr("Property", "ຣີສອດ")}>
-          <select value={propertyId} onChange={(e) => setPropertyId(e.target.value)}>
-            <option value="">{tr("All properties (group)", "ທຸກຣີສອດ (ທັງກຸ່ມ)")}</option>
-            {props.data?.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </Field>
+        {!mine && (
+          <Field label={tr("Property", "ຣີສອດ")}>
+            <select value={propertyId} onChange={(e) => setPropertyId(e.target.value)}>
+              <option value="">{tr("All properties (group)", "ທຸກຣີສອດ (ທັງກຸ່ມ)")}</option>
+              {props.data?.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
       </div>
       <Lede>
         {tr("Tap a photo to compare the profile photo with the face photos the scanner took.", "ກົດຮູບ ເພື່ອປຽບທຽບຮູບໂປຣໄຟລ໌ກັບຮູບທີ່ເຄື່ອງສະແກນຖ່າຍ.")}{" "}

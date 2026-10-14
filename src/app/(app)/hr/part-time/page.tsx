@@ -11,7 +11,9 @@ import {
   useDailyHires,
   useDeleteDailyHire,
   useDepartments,
+  useMyResort,
   useOutlets,
+  useProperties,
   useUpdateDailyHire,
 } from "@/features/hr/api";
 import type { DailyHire, DailyHireDay, DayStatus } from "@/features/hr/types";
@@ -55,7 +57,11 @@ function AddPanel() {
   const [date, setDate] = useState(today());
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", department_id: "", outlet_id: "", price: "", comment: "" });
-  const hires = useDailyHires(date);
+  const mine = useMyResort();
+  const properties = useProperties();
+  const [picked, setPicked] = useState("");
+  const propertyId = mine?.id ?? (picked || properties.data?.[0]?.id || "");
+  const hires = useDailyHires(date, propertyId);
   const allDays = useDailyHireDays();
   // reasons used before, offered as suggestions (prototype dhCommentList)
   const pastComments = [...new Set((allDays.data ?? []).flatMap((d) => d.hires.map((h) => h.comment)).filter(Boolean))];
@@ -71,7 +77,7 @@ function AddPanel() {
       return dialogs.error(tr("Missing information", "ຂໍ້ມູນບໍ່ຄົບ"), new Error(tr("Enter at least a name, department and price per day.", "ໃສ່ຢ່າງໜ້ອຍ ຊື່, ພະແນກ ແລະ ຄ່າຈ້າງຕໍ່ມື້.")));
     try {
       await create.mutateAsync({
-        work_date: date, name: form.name.trim(), department_id: dept, outlet_id: form.outlet_id || null, price_per_day: price,
+        work_date: date, property_id: propertyId, name: form.name.trim(), department_id: dept, outlet_id: form.outlet_id || null, price_per_day: price,
         comment: form.comment.trim(),
       });
       setForm((f) => ({ ...f, name: "", price: "", comment: "" }));
@@ -86,12 +92,27 @@ function AddPanel() {
       <Lede>
         {tr("Covers gaps in a department without adding to headcount quota. Their daily cost is factored against that department's payroll bonus pool. Pick a date first — you'll see who's already logged for that day before adding more.", "ໃຊ້ຈ້າງຄົນລາຍວັນມາຊ່ວຍພະແນກ ໂດຍບໍ່ນັບເຂົ້າໂຄຕາຄົນ. ຄ່າຈ້າງຈະຫັກອອກຈາກໂບນັດຂອງພະແນກນັ້ນ. ເລືອກວັນທີກ່ອນ — ຈະເຫັນວ່າມື້ນັ້ນມີໃຜແລ້ວ ກ່ອນເພີ່ມ.")}
       </Lede>
-      <Field label={tr("Date", "ວັນທີ")} style={{ maxWidth: 220 }}>
-        <input type="date" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} />
-      </Field>
+      <div className="land-row">
+        <Field label={tr("Date", "ວັນທີ")} style={{ maxWidth: 220 }}>
+          <input type="date" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} />
+        </Field>
+        <Field label={tr("Property", "ຣີສອດ")} style={{ maxWidth: 260 }}>
+          {mine ? (
+            <input value={mine.name} disabled />
+          ) : (
+            <select value={propertyId} onChange={(e) => setPicked(e.target.value)}>
+              {properties.data?.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </Field>
+      </div>
       {!editable(status) && (
         <p className="hint warn">
-          {fmtDate(date)} is {status === "pending" ? tr("waiting for approval", "ລໍຖ້າອະນຸມັດ") : tr("already approved", "ອະນຸມັດແລ້ວ")}{" "}
+          {fmtDate(date)} {tr("is", "")} {status === "pending" ? tr("waiting for approval", "ລໍຖ້າອະນຸມັດ") : tr("already approved", "ອະນຸມັດແລ້ວ")}{" "}
           {tr(
             '— new part-time staff can\'t be added to it. Use "Request a change" in Approval and History instead.',
             '— ເພີ່ມພາທາມໃໝ່ບໍ່ໄດ້. ໃຊ້ "ຂໍແກ້ໄຂ" ໃນໜ້າ ອະນຸມັດ ແລະ ປະຫວັດ ແທນ.',
@@ -174,9 +195,9 @@ function HistoryPanel({ days, loading, error }: { days: DailyHireDay[]; loading:
       <Field label={tr("Filter by date", "ກອງຕາມວັນທີ")} style={{ maxWidth: 220 }}>
         <select value={filter} onChange={(e) => setFilter(e.target.value)}>
           <option value="">{tr("All dates", "ທຸກວັນທີ")}</option>
-          {days.map((d) => (
-            <option key={d.work_date} value={d.work_date}>
-              {fmtDate(d.work_date)}
+          {[...new Set(days.map((d) => d.work_date))].map((d) => (
+            <option key={d} value={d}>
+              {fmtDate(d)}
             </option>
           ))}
         </select>
@@ -184,7 +205,7 @@ function HistoryPanel({ days, loading, error }: { days: DailyHireDay[]; loading:
       <DataState loading={loading} error={error}>
         {shown.length === 0 && <p className="empty">{tr("No part-time days logged yet.", "ຍັງບໍ່ມີການບັນທຶກພາທາມ.")}</p>}
         {shown.map((d) => (
-          <DayCard key={d.work_date} day={d} />
+          <DayCard key={d.work_date + d.property_id} day={d} />
         ))}
       </DataState>
     </>
@@ -200,7 +221,7 @@ function DayCard({ day }: { day: DailyHireDay }) {
 
   async function run(kind: "submit" | "unlock" | "send-to-accounting") {
     try {
-      const r = await action.mutateAsync({ date: day.work_date, action: kind });
+      const r = await action.mutateAsync({ date: day.work_date, propertyId: day.property_id, action: kind });
       if (kind === "submit") dialogs.success(...requestOutcome(r, tr(`Part-time list for ${date} (${day.hires.length} staff)`, `ລາຍຊື່ພາທາມວັນທີ ${date} (${day.hires.length} ຄົນ)`)));
       if (kind === "unlock")
         dialogs.success(tr("Unlocked for editing", "ປົດລັອກໃຫ້ແກ້ແລ້ວ"), tr(`${date}'s part-time list is now editable. Make your corrections, then send them for approval.`, `ລາຍຊື່ພາທາມວັນທີ ${date} ແກ້ໄດ້ແລ້ວ. ແກ້ໃຫ້ຮຽບຮ້ອຍ ແລ້ວສົ່ງອະນຸມັດ.`));
@@ -215,7 +236,7 @@ function DayCard({ day }: { day: DailyHireDay }) {
     <div className="card">
       <h3 className="card-head">
         <span>
-          {date} — {day.hires.length} part-time, {lak(day.total)}
+          {date} · {day.property} — {tr(`${day.hires.length} part-time`, `ພາທາມ ${day.hires.length} ຄົນ`)}, {lak(day.total)}
         </span>
         <span className="approve-actions">
           <DayStatusTag status={day.status} />

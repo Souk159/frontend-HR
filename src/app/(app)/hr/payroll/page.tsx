@@ -4,7 +4,7 @@ import { useState } from "react";
 import { DataState, Field, Kpi, Lede, SectionHead, Table, Tag, useDialogs } from "@/components/ui";
 import { useLang, tr } from "@/lib/i18n";
 import { fmtDate, fmtMonth, lak, num, thisMonth } from "@/lib/format";
-import { usePayroll, usePayrollMonthAction, useSendPayroll } from "@/features/hr/api";
+import { useMyResort, usePayroll, usePayrollMonthAction, useSendPayroll } from "@/features/hr/api";
 import type { MonthStatus, PayrollDept, PayrollPreview, PayrollRow } from "@/features/hr/types";
 import { deptLabel, fmtStamp, requestOutcome } from "@/features/hr/utils";
 import { printSlip } from "@/features/hr/print";
@@ -24,6 +24,7 @@ export default function PayrollPage() {
     .filter((d) => d.rows.length > 0);
 
   const p = payroll.data;
+  const mine = useMyResort(); // a resort account sees its own staff; month actions stay central
   const st = p?.status;
   const review = (p?.departments ?? []).flatMap((d) => d.rows.filter((r) => r.no_scans).map((r) => `${r.name} (${d.name})`));
   const warnings = [
@@ -117,13 +118,25 @@ export default function PayrollPage() {
           </div>
         )}
         <div className="kpi-row" style={{ gridTemplateColumns: "1fr" }}>
-          <Kpi dark label={tr("Group total net payroll", "ເງິນເດືອນສຸດທິ ລວມທັງກຸ່ມ")} value={lak(p?.grand_total)} />
+          <Kpi
+            dark
+            label={mine ? tr(`${mine.name} total net payroll`, `ເງິນເດືອນສຸດທິ ລວມ ${mine.name}`) : tr("Group total net payroll", "ເງິນເດືອນສຸດທິ ລວມທັງກຸ່ມ")}
+            value={lak(p?.grand_total)}
+          />
         </div>
         {depts.map((d) => (
           <DeptCard key={d.name} dept={d} preview={p!} />
         ))}
         {depts.length === 0 && <p className="empty">No employees to pay for {fmtMonth(month)}.</p>}
-        {st && (
+        {st && mine && (
+          <p className="hint">
+            {tr(
+              `Showing ${mine.name}'s staff only. Central HR submits, closes and sends the whole group's payroll each month.`,
+              `ສະແດງສະເພາະພະນັກງານຂອງ ${mine.name}. HR ສູນກາງ ເປັນຜູ້ສົ່ງອະນຸມັດ, ປິດເດືອນ ແລະ ສົ່ງເງິນເດືອນທັງກຸ່ມ.`,
+            )}
+          </p>
+        )}
+        {st && !mine && (
           <>
             <div className="land-row">
               <button type="button" className="mini-btn" onClick={submit} disabled={busy || st.status !== "open"}>

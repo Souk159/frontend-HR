@@ -9,7 +9,7 @@ type NavItem = {
   icon: string;
   group: NavGroup;
   /** a granted HR tab, or a capability flag from /hr/me */
-  needs: HRTab | "can_approve" | "can_manage_access" | "can_manage_accounts";
+  needs: HRTab | "can_approve" | "can_manage_access" | "can_manage_accounts" | "central_access";
 };
 
 /** Sidebar sections, in display order. */
@@ -47,7 +47,7 @@ export const HR_NAV: NavItem[] = [
   { href: "/hr/work-rules", label: "tb_work_rules", icon: "⏱️", group: "settings", needs: "work_rules" },
   { href: "/hr/accounts", label: "tb_accounts", icon: "👤", group: "settings", needs: "can_manage_accounts" },
   { href: "/hr/access", label: "tb_hr_access", icon: "🔑", group: "settings", needs: "can_manage_access" },
-  { href: "/hr/scanners", label: "tb_scanners", icon: "📟", group: "settings", needs: "can_manage_access" },
+  { href: "/hr/scanners", label: "tb_scanners", icon: "📟", group: "settings", needs: "central_access" },
 ];
 
 /** True when the path is this screen or a page under it — "/hr/leave" must not match "/hr/leave-quota". */
@@ -69,6 +69,8 @@ export function allowedNav(access: HRAccess | undefined): NavItem[] {
       ? access.can_approve
       : n.needs === "can_manage_access"
         ? access.can_manage_access
+        : n.needs === "central_access" // resorts and scanners: central HR only
+          ? access.can_manage_access && !access.property
         : n.needs === "can_manage_accounts"
           ? access.can_manage_accounts
           : access.tabs.includes(n.needs),

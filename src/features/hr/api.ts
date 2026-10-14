@@ -48,7 +48,7 @@ export const hrKeys = {
   leaveTypes: ["hr", "leave-types"] as const,
   leaveRequests: ["hr", "leave-requests"] as const,
   leaveQuota: ["hr", "leave-quota"] as const,
-  dailyHires: (date: string) => ["hr", "daily-hires", date] as const,
+  dailyHires: (date: string, propertyId: string) => ["hr", "daily-hires", date, propertyId] as const,
   dailyHireDays: ["hr", "daily-hire-days"] as const,
   approvals: (status: "pending" | "all") => ["hr", "approvals", status] as const,
   approval: (id: string) => ["hr", "approval", id] as const,
@@ -72,6 +72,8 @@ export const hrKeys = {
 
 // ── Queries ──────────────────────────────────────────────────────────────────
 export const useHRAccess = () => useQuery({ queryKey: hrKeys.me, queryFn: () => api.get<HRAccess>("/hr/me") });
+/** The resort the signed-in account is limited to; null = central HR (every resort). */
+export const useMyResort = () => useHRAccess().data?.property ?? null;
 export const useDepartments = () =>
   useQuery({ queryKey: hrKeys.departments, queryFn: () => api.get<Department[]>("/hr/departments") });
 export const useStaff = (includeResigned = false) =>
@@ -94,12 +96,14 @@ export const useLeaveQuota = () =>
     queryKey: hrKeys.leaveQuota,
     queryFn: () => api.get<{ leave_types: LeaveType[]; balances: LeaveBalance[] }>("/hr/leave-quota"),
   });
-export const useDailyHires = (date: string) =>
+/** One resort's part-time list for a date (a resort account always gets its own). */
+export const useDailyHires = (date: string, propertyId: string) =>
   useQuery({
-    queryKey: hrKeys.dailyHires(date),
+    queryKey: hrKeys.dailyHires(date, propertyId),
+    enabled: !!propertyId,
     queryFn: () =>
       api.get<{ hires: DailyHire[]; status: DailyHireDay["status"]; sent_to_accounting: string | null }>(
-        `/hr/daily-hires?date=${date}`,
+        `/hr/daily-hires?date=${date}&property_id=${propertyId}`,
       ),
   });
 export const useDailyHireDays = () =>
@@ -248,7 +252,15 @@ export const useSetCustomLeaveQuota = () =>
 const PART_TIME: QueryKey[] = [["hr", "daily-hires"], hrKeys.dailyHireDays, ["hr", "payroll"]];
 export const useCreateDailyHire = () =>
   useHRMutation(
-    (body: { work_date: string; name: string; department_id: string; outlet_id: string | null; price_per_day: number; comment: string }) =>
+    (body: {
+      work_date: string;
+      property_id: string;
+      name: string;
+      department_id: string;
+      outlet_id: string | null;
+      price_per_day: number;
+      comment: string;
+    }) =>
       api.post("/hr/daily-hires", body),
     PART_TIME,
   );
@@ -257,8 +269,10 @@ export const useUpdateDailyHire = () =>
 export const useDeleteDailyHire = () => useHRMutation((id: string) => api.del(`/hr/daily-hires/${id}`), PART_TIME);
 export const useDailyHireDayAction = () =>
   useHRMutation(
-    ({ date, action }: { date: string; action: "submit" | "unlock" | "send-to-accounting" }) =>
-      api.post<{ approval_id?: string; applied?: boolean; messages_sent?: number }>(`/hr/daily-hire-days/${date}/${action}`),
+    ({ date, propertyId, action }: { date: string; propertyId: string; action: "submit" | "unlock" | "send-to-accounting" }) =>
+      api.post<{ approval_id?: string; applied?: boolean; messages_sent?: number }>(
+        `/hr/daily-hire-days/${date}/${action}?property_id=${propertyId}`,
+      ),
     [HR_ALL],
   );
 
@@ -356,13 +370,22 @@ export const useRenameProperty = () =>
 // ── Edit / remove (settings that could only be created before) ──────────────
 export const useCreateAccount = () =>
   useHRMutation(
-    (body: { username: string; full_name: string; role: string; password: string; employee_user_id: string | null }) =>
+    (body: {
+      username: string;
+      full_name: string;
+      role: string;
+      password: string;
+      employee_user_id: string | null;
+      /** "" = central */
+      property_id: string;
+    }) =>
       api.post<{ id: string }>("/hr/accounts", body),
     [hrKeys.accounts, ["hr", "staff"]],
   );
 export const useUpdateAccount = () =>
   useHRMutation(
-    ({ id, ...body }: { id: string; full_name?: string; role?: string; is_active?: boolean }) => api.patch(`/hr/accounts/${id}`, body),
+    ({ id, ...body }: { id: string; full_name?: string; role?: string; is_active?: boolean; property_id?: string }) =>
+      api.patch(`/hr/accounts/${id}`, body),
     [hrKeys.accounts],
   );
 export const useResetAccountPassword = () =>

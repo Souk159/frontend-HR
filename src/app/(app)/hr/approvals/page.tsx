@@ -38,7 +38,10 @@ export default function HRApprovalsPage() {
           {pending.data?.map((a) => (
             <tr key={a.id}>
               <td>{approvalLabel(a.type)}</td>
-              <td>{a.target}</td>
+              <td>
+                {a.target}
+                {a.property && <div className="hint">{a.property}</div>}
+              </td>
               <td className="mono" style={{ fontSize: 10.5, cursor: "pointer" }} onClick={() => setOpen(a.id)}>
                 {approvalChange(a)}
               </td>

@@ -29,6 +29,8 @@ export type HRAccess = {
   can_manage_access: boolean;
   /** owner / admin / GM: the User Accounts screen */
   can_manage_accounts: boolean;
+  /** the resort this account is limited to; null = central HR (every resort) */
+  property: { id: string; name: string } | null;
 };
 
 export type Account = {
@@ -41,6 +43,9 @@ export type Account = {
   employee_no: string;
   editable: boolean;
   is_self: boolean;
+  /** HR Manager / Coordinator / GM limited to one resort; null = central */
+  property_id: string | null;
+  property: string;
 };
 
 export type PropertyAdmin = { id: string; name: string; is_active: boolean; employees: number; scanners: number };
@@ -215,6 +220,7 @@ export type LeaveBalance = {
 export type DailyHire = {
   id: string;
   work_date: string;
+  property_id: string | null;
   name: string;
   department_id: string | null;
   department: string;
@@ -227,6 +233,9 @@ export type DailyHire = {
 export type DayStatus = "draft" | "pending" | "approved" | "denied" | "unlocked";
 export type DailyHireDay = {
   work_date: string;
+  /** each resort's part-time list is submitted and approved on its own */
+  property_id: string;
+  property: string;
   status: DayStatus;
   sent_to_accounting: string | null;
   total: number;
@@ -253,6 +262,9 @@ export type Approval = {
   approvals: { role: string; by: string; at: string }[];
   /** the signed-in user may approve / deny it now */
   can_decide: boolean;
+  /** the resort it belongs to; null = the whole group */
+  property_id: string | null;
+  property: string;
 };
 
 export type ApprovalMode = "any" | "all" | "none";

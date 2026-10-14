@@ -47,7 +47,7 @@ export function HRShell({ children }: { children: ReactNode }) {
           </div>
           <div className="property-pill">
             <span className="dot" />
-            {t("hr_pill")}
+            {access.data?.property ? `${access.data.property.name} — ${tr("HR", "ບຸກຄະລາກອນ")}` : t("hr_pill")}
           </div>
         </div>
         <div className="right">

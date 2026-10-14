@@ -3,11 +3,35 @@
 import { useState } from "react";
 import { DataState, EmptyRow, Field, Lede, Modal, SectionHead, Table, Tag, useDialogs } from "@/components/ui";
 import { useLang, tr } from "@/lib/i18n";
-import { useAccounts, useCreateAccount, useResetAccountPassword, useStaff, useUpdateAccount } from "@/features/hr/api";
-import type { Account } from "@/features/hr/types";
+import {
+  useAccounts,
+  useCreateAccount,
+  useMyResort,
+  useProperties,
+  useResetAccountPassword,
+  useStaff,
+  useUpdateAccount,
+} from "@/features/hr/api";
+import type { Account, Property } from "@/features/hr/types";
 import { ROLE_LABELS } from "@/features/hr/utils";
 
 const roleLabel = (r: string) => ROLE_LABELS[r] ?? r;
+/** roles that can be limited to one resort (others are always central) */
+const SCOPED_ROLES = ["gm", "hr_manager", "hr_coordinator"];
+
+/** "" = central HR (every resort) */
+function ResortSelect({ value, onChange, properties }: { value: string; onChange: (v: string) => void; properties: Property[] }) {
+  return (
+    <select className="inline-input" value={value} onChange={(e) => onChange(e.target.value)}>
+      <option value="">{tr("Central — every resort", "ສູນກາງ — ທຸກຣີສອດ")}</option>
+      {properties.map((p) => (
+        <option key={p.id} value={p.id}>
+          {p.name}
+        </option>
+      ))}
+    </select>
+  );
+}
 
 /** Sign-in accounts. Owner / Admin manage every account; GM manages HR Manager and HR Coordinator accounts. */
 export default function AccountsPage() {
@@ -25,11 +49,11 @@ export default function AccountsPage() {
         </button>
       </SectionHead>
       <Lede>
-        {tr("Who can sign in, and with which role. Most employees don't need a login — HR records their attendance, leave and part-time days for them. Give a login to HR staff, managers and executives; an employee from the Directory keeps their profile when given a login. Disabling an account or changing its role signs that person out at once.", "ໃຜເຂົ້າລະບົບໄດ້ ແລະ ດ້ວຍບົດບາດໃດ. ພະນັກງານສ່ວນຫຼາຍບໍ່ຕ້ອງມີບັນຊີ — HR ບັນທຶກການເຂົ້າວຽກ, ການລາ ແລະ ພາທາມແທນ. ໃຫ້ບັນຊີແກ່ HR, ຜູ້ຈັດການ ແລະ ຜູ້ບໍລິຫານ; ພະນັກງານທີ່ໄດ້ບັນຊີ ໂປຣໄຟລ໌ເກົ່າຢູ່ຄືເກົ່າ. ການປິດບັນຊີ ຫຼື ປ່ຽນບົດບາດ ຈະບັງຄັບໃຫ້ຄົນນັ້ນອອກຈາກລະບົບທັນທີ.")}
+        {tr("Who can sign in, with which role and for which resort. An HR Manager, HR Coordinator or GM set to one resort sees, edits and approves only that resort's staff; leave it on Central for head-office staff who cover every resort. Most employees don't need a login — HR records their attendance, leave and part-time days for them. Give a login to HR staff, managers and executives; an employee from the Directory keeps their profile when given a login. Disabling an account or changing its role signs that person out at once.", "ໃຜເຂົ້າລະບົບໄດ້ ດ້ວຍບົດບາດໃດ ແລະ ຂອງຣີສອດໃດ. HR Manager, HR Coordinator ຫຼື GM ທີ່ກຳນົດຣີສອດ ຈະເຫັນ, ແກ້ ແລະ ອະນຸມັດສະເພາະພະນັກງານຂອງຣີສອດນັ້ນ; ເລືອກ ສູນກາງ ສຳລັບຄົນສຳນັກງານໃຫຍ່ທີ່ເບິ່ງທຸກຣີສອດ. ພະນັກງານສ່ວນຫຼາຍບໍ່ຕ້ອງມີບັນຊີ — HR ບັນທຶກການເຂົ້າວຽກ, ການລາ ແລະ ພາທາມແທນ. ໃຫ້ບັນຊີແກ່ HR, ຜູ້ຈັດການ ແລະ ຜູ້ບໍລິຫານ; ພະນັກງານທີ່ໄດ້ບັນຊີ ໂປຣໄຟລ໌ເກົ່າຢູ່ຄືເກົ່າ. ການປິດບັນຊີ ຫຼື ປ່ຽນບົດບາດ ຈະບັງຄັບໃຫ້ຄົນນັ້ນອອກຈາກລະບົບທັນທີ.")}
       </Lede>
       <DataState loading={accounts.isLoading} error={accounts.error}>
-        <Table head={[tr("Name", "ຊື່"), tr("Username", "ຊື່ຜູ້ໃຊ້"), tr("Role", "ບົດບາດ"), tr("Status", "ສະຖານະ"), ""]}>
-          {(accounts.data?.accounts ?? []).length === 0 && <EmptyRow cols={5}>{tr("No accounts yet.", "ຍັງບໍ່ມີບັນຊີ.")}</EmptyRow>}
+        <Table head={[tr("Name", "ຊື່"), tr("Username", "ຊື່ຜູ້ໃຊ້"), tr("Role", "ບົດບາດ"), tr("Resort", "ຣີສອດ"), tr("Status", "ສະຖານະ"), ""]}>
+          {(accounts.data?.accounts ?? []).length === 0 && <EmptyRow cols={6}>{tr("No accounts yet.", "ຍັງບໍ່ມີບັນຊີ.")}</EmptyRow>}
           {accounts.data?.accounts.map((a) => (
             <AccountRow key={a.id} a={a} roles={roles} onReset={() => setResetting(a)} />
           ))}
@@ -49,13 +73,18 @@ function AccountRow({ a, roles, onReset }: { a: Account; roles: string[]; onRese
   const dialogs = useDialogs();
   const update = useUpdateAccount();
   const [role, setRole] = useState(a.role);
+  const [resort, setResort] = useState(a.property_id ?? "");
+  const central = useMyResort() === null;
+  const properties = useProperties();
+  const resortName = (id: string) => properties.data?.find((p) => p.id === id)?.name ?? tr("Central", "ສູນກາງ");
 
-  async function save(body: { role?: string; is_active?: boolean }, done: string) {
+  async function save(body: { role?: string; is_active?: boolean; property_id?: string }, done: string) {
     try {
       await update.mutateAsync({ id: a.id, ...body });
       dialogs.success(tr("Saved", "ບັນທຶກແລ້ວ"), done);
     } catch (err) {
       setRole(a.role);
+      setResort(a.property_id ?? "");
       dialogs.error(tr("Could not save", "ບັນທຶກບໍ່ສຳເລັດ"), err);
     }
   }
@@ -93,6 +122,36 @@ function AccountRow({ a, roles, onReset }: { a: Account; roles: string[]; onRese
           </button>
         )}
       </td>
+      <td>
+        {!SCOPED_ROLES.includes(role) ? (
+          <span className="c-soft">{tr("Every resort", "ທຸກຣີສອດ")}</span>
+        ) : a.editable && central ? (
+          <>
+            <ResortSelect value={resort} onChange={setResort} properties={properties.data ?? []} />
+            {resort !== (a.property_id ?? "") && (
+              <button
+                type="button"
+                className="mini-btn"
+                style={{ marginLeft: 6 }}
+                onClick={() =>
+                  save(
+                    { property_id: resort },
+                    tr(
+                      `${a.full_name} now works for: ${resortName(resort)}. They have been signed out to pick up the change.`,
+                      `${a.full_name} ຮັບຜິດຊອບ: ${resortName(resort)} ແລ້ວ. ລະບົບອອກຈາກລະບົບໃຫ້ ເພື່ອໃຊ້ການປ່ຽນແປງ.`,
+                    ),
+                  )
+                }
+                disabled={update.isPending}
+              >
+                {tr("Save", "ບັນທຶກ")}
+              </button>
+            )}
+          </>
+        ) : (
+          a.property || tr("Central", "ສູນກາງ")
+        )}
+      </td>
       <td>{a.is_active ? <Tag kind="ok">{tr("Active", "ເຮັດວຽກ")}</Tag> : <Tag kind="low">{tr("Disabled", "ປິດແລ້ວ")}</Tag>}</td>
       <td style={{ whiteSpace: "nowrap" }}>
         {a.editable && (
@@ -123,14 +182,17 @@ function AddAccountForm({ roles, onDone }: { roles: string[]; onDone: () => void
   const create = useCreateAccount();
   const staff = useStaff();
   const noLogin = (staff.data ?? []).filter((s) => !s.has_login);
-  const [f, setF] = useState({ employee: "", full_name: "", username: "", role: roles[0] ?? "", password: "" });
+  const [f, setF] = useState({ employee: "", full_name: "", username: "", role: roles[0] ?? "", password: "", property_id: "" });
   const emp = noLogin.find((s) => s.user_id === f.employee);
+  const mine = useMyResort();
+  const properties = useProperties();
 
   async function submit() {
     try {
       await create.mutateAsync({
         username: f.username.trim().toLowerCase(), full_name: emp ? emp.full_name : f.full_name.trim(),
         role: f.role, password: f.password, employee_user_id: emp?.user_id ?? null,
+        property_id: SCOPED_ROLES.includes(f.role) ? f.property_id : "",
       });
       onDone();
       dialogs.success(tr("Account added", "ເພີ່ມບັນຊີແລ້ວ"), tr(`${emp?.full_name ?? f.full_name} can now sign in as ${f.username.trim().toLowerCase()} (${roleLabel(f.role)}).`, `${emp?.full_name ?? f.full_name} ເຂົ້າລະບົບໄດ້ແລ້ວ ດ້ວຍ ${f.username.trim().toLowerCase()} (${roleLabel(f.role)}).`));
@@ -170,6 +232,21 @@ function AddAccountForm({ roles, onDone }: { roles: string[]; onDone: () => void
           </select>
         </Field>
       </div>
+      {SCOPED_ROLES.includes(f.role) && (
+        <Field
+          label={tr("Resort", "ຣີສອດ")}
+          hint={tr(
+            "Set a resort for HR or a GM who works at one resort only — they will see, edit and approve that resort's staff only. Central = head office, every resort.",
+            "ກຳນົດຣີສອດ ສຳລັບ HR ຫຼື GM ທີ່ປະຈຳຣີສອດດຽວ — ຈະເຫັນ, ແກ້ ແລະ ອະນຸມັດ ສະເພາະພະນັກງານຂອງຣີສອດນັ້ນ. ສູນກາງ = ສຳນັກງານໃຫຍ່, ທຸກຣີສອດ.",
+          )}
+        >
+          {mine ? (
+            <input value={mine.name} disabled />
+          ) : (
+            <ResortSelect value={f.property_id} onChange={(v) => setF({ ...f, property_id: v })} properties={properties.data ?? []} />
+          )}
+        </Field>
+      )}
       <Field label={tr("Password", "ລະຫັດຜ່ານ")} hint={tr("At least 8 characters — give it to the person privately; they can change it after signing in.", "ຢ່າງໜ້ອຍ 8 ຕົວ — ແຈ້ງໃຫ້ເຈົ້າຂອງແບບສ່ວນຕົວ; ເຂົາປ່ຽນເອງໄດ້ຫຼັງເຂົ້າລະບົບ.")}>
         <input type="password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} autoComplete="new-password" />
       </Field>

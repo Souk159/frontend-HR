@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Avatar, DataState, EmptyRow, Field, Lede, SectionHead, Table, Tag, useDialogs } from "@/components/ui";
 import { useLang, tr } from "@/lib/i18n";
 import { fmtDate, lak } from "@/lib/format";
-import { useDepartments, useProperties, useRequestDepartmentChanges, useStaff } from "@/features/hr/api";
+import { useDepartments, useMyResort, useProperties, useRequestDepartmentChanges, useStaff } from "@/features/hr/api";
 import { EmployeeFormModal } from "@/features/hr/components/EmployeeFormModal";
 import { NewDepartmentForm } from "@/features/hr/components/NewDepartmentForm";
 import type { Staff } from "@/features/hr/types";
@@ -17,6 +17,7 @@ export default function DirectoryPage() {
   const staff = useStaff();
   const depts = useDepartments();
   const props = useProperties();
+  const mine = useMyResort(); // a resort account only ever sees its own resort
   const saveChanges = useRequestDepartmentChanges();
 
   const [search, setSearch] = useState("");
@@ -66,16 +67,18 @@ export default function DirectoryPage() {
         <Field label={tr("Search", "ຄົ້ນຫາ")} grow={2}>
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={tr("Search name, ID, department, position or property...", "ຄົ້ນຫາ ຊື່, ລະຫັດ, ພະແນກ, ຕຳແໜ່ງ ຫຼື ຣີສອດ...")} />
         </Field>
-        <Field label={tr("Property", "ຣີສອດ")}>
-          <select value={propertyId} onChange={(e) => setPropertyId(e.target.value)}>
-            <option value="">{tr("All properties (group)", "ທຸກຣີສອດ (ທັງກຸ່ມ)")}</option>
-            {props.data?.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </Field>
+        {!mine && (
+          <Field label={tr("Property", "ຣີສອດ")}>
+            <select value={propertyId} onChange={(e) => setPropertyId(e.target.value)}>
+              <option value="">{tr("All properties (group)", "ທຸກຣີສອດ (ທັງກຸ່ມ)")}</option>
+              {props.data?.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
         <button type="button" className="mini-btn" onClick={() => setShowNewDept((v) => !v)}>
           {tr("+ Create department", "+ ສ້າງພະແນກ")}
         </button>
