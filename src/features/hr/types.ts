@@ -19,7 +19,8 @@ export type HRTab =
   | "manual_hours"
   | "cost_labels"
   | "bonus_types"
-  | "public_holiday";
+  | "public_holiday"
+  | "overtime";
 
 export type HRAccess = {
   role: string;
@@ -293,6 +294,45 @@ export type OrgSettings = {
   deduction_unit: "hours" | "minutes";
   ot_unit: "hours" | "minutes";
   ot_basis: "monthly" | "weekly";
+  /** first month (YYYY-MM) whose OT is paid only once finalized against the signed OT document; "" = never */
+  ot_finalize_from: string;
+};
+
+export type OTKind = "over" | "daily";
+/** One employee's OT on one date (prototype v207 hr-overtime). */
+export type OTLine = {
+  user_id: string;
+  name: string;
+  department: string;
+  property: string;
+  date: string;
+  clock_in: string;
+  clock_out: string;
+  /** hours above hours/day on the scans; null = not on the scans (added by HR) */
+  scanner_hours: number | null;
+  /** per the signed document — a draft until finalized */
+  final_hours: number;
+  kind: OTKind;
+  status: "draft" | "finalized";
+  /** taken off the list — becomes 0 when finalized */
+  removed: boolean;
+  doc_ref: string;
+  /** what Payroll pays now */
+  applied_hours: number;
+  applied_kind: OTKind;
+  source: "scanner" | "hr";
+};
+export type OTDay = {
+  date: string;
+  month: string;
+  closed: boolean;
+  finalize_from: string;
+  /** this month pays finalized OT only */
+  active: boolean;
+  unit: "hours" | "minutes";
+  lines: OTLine[];
+  days: { date: string; people: number; finalized: boolean }[];
+  totals: { user_id: string; name: string; department: string; days: number; over: number; daily: number; pending: number }[];
 };
 
 export type MonthStatus = {
@@ -333,6 +373,8 @@ export type PayrollRow = {
   ot_hours: number;
   /** OT within the day */
   ot_hours_daily: number;
+  /** OT not finalized yet — not paid */
+  ot_pending: number;
   ot_pay: number;
   service_charge: number;
   quota_bonus: number;
@@ -419,6 +461,44 @@ export type PublicHoliday = {
   payout_pending: boolean;
   unused_count: number;
   unused_value: number;
+  /** active employees it applies to now */
+  eligible: number;
+} & HolidayEligibility;
+
+/** Who gets a holiday (prototype v207 Holidays). */
+export type HolidayEligibility = {
+  eligibility: "everyone" | "tenure" | "specific";
+  /** tenure: worked at least this many months */
+  tenure_months: number;
+  /** specific: these employees */
+  people: string[];
+};
+
+export type BenefitKey = "annual" | "public_holiday" | "weekly";
+export type BenefitState = {
+  granted: boolean;
+  /** set by HR; null = follows the length-of-service rule */
+  override: boolean | null;
+  /** the date the rule grants it */
+  starts: string | null;
+  /** a change is waiting for approval */
+  pending: boolean;
+};
+/** Benefits by length of service (prototype v207 Employee Status). */
+export type Benefits = {
+  /** months of service before each benefit starts */
+  rules: Record<BenefitKey, number>;
+  rule_change_pending: string | null;
+  employees: {
+    user_id: string;
+    months_of_service: number | null;
+    benefits: Record<BenefitKey, BenefitState>;
+    weekly_days_off: number;
+    annual_quota: number;
+    annual_used: number;
+    holiday_quota: number;
+    holiday_used: number;
+  }[];
 };
 
 export type ManualHours = {

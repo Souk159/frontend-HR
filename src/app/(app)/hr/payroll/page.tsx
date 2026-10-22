@@ -217,6 +217,11 @@ function DeptCard({ dept: d, preview }: { dept: PayrollDept; preview: PayrollPre
                   {r.ot_hours_daily > 0 && tr(`${num(r.ot_hours_daily)}h in day`, `ໃນມື້ ${num(r.ot_hours_daily)} ຊມ`)}
                 </div>
               )}
+              {r.ot_pending > 0 && (
+                <div className="hint warn" title={tr("OT on the scans not yet finalized against the signed OT document — not paid until it is.", "OT ຈາກການສະແກນ ທີ່ຍັງບໍ່ Finalize ຕາມໃບ OT — ຍັງບໍ່ຈ່າຍ.")}>
+                  {tr(`⏳ ${num(r.ot_pending)}h not finalized`, `⏳ ຍັງບໍ່ Finalize ${num(r.ot_pending)} ຊມ`)}
+                </div>
+              )}
             </td>
             <td className="mono">{lak(r.service_charge)}</td>
             <td className="mono c-jade bold">{lak(r.quota_bonus)}</td>

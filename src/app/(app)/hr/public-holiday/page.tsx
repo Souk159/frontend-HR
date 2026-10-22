@@ -5,7 +5,8 @@ import { DataState, Field, Lede, Modal, SectionHead, Tag, useDialogs } from "@/c
 import { useLang, tr } from "@/lib/i18n";
 import { fmtDate, fmtMonth, lak, thisMonth } from "@/lib/format";
 import { useCreateHoliday, useDeleteHoliday, useHolidayPayout, usePublicHolidays, useUpdateHoliday } from "@/features/hr/api";
-import type { PublicHoliday } from "@/features/hr/types";
+import type { HolidayEligibility, PublicHoliday } from "@/features/hr/types";
+import { eligibilityText, HolidayEligibilityFields } from "@/features/hr/components/HolidayEligibilityFields";
 import { requestOutcome } from "@/features/hr/utils";
 
 /** Prototype v168 hr-publicholiday. */
@@ -16,7 +17,7 @@ export default function PublicHolidayPage() {
     <div className="subview">
       <SectionHead title={t("sh_public_holiday")} />
       <Lede>
-        {tr("Log each public holiday, how many days it covers, and the window employees have to take it. It automatically becomes a Leave Type — appearing in every employee's Leave Quota and selectable from Leave Requests — and taking it deducts from that quota like any other leave. If someone doesn't use it (or only uses part of it), add its remaining cash value straight to their pay — calculated from each person's own daily rate, for the unused days only, once the window has closed, per the Approval Rule.", "ບັນທຶກວັນພັກລັດຖະການ, ຈຳນວນມື້ ແລະ ຊ່ວງທີ່ພັກໄດ້. ລະບົບສ້າງເປັນປະເພດລາໃຫ້ອັດຕະໂນມັດ — ມີໃນໂຄຕາການລາຂອງທຸກຄົນ ແລະ ເລືອກໄດ້ໃນຄຳຂໍລາ. ຖ້າໃຜບໍ່ໄດ້ໃຊ້ (ຫຼື ໃຊ້ບໍ່ໝົດ), ຈ່າຍເປັນເງິນແທນໄດ້ ຕາມຄ່າຈ້າງຕໍ່ມື້ຂອງແຕ່ລະຄົນ ສະເພາະມື້ທີ່ບໍ່ໄດ້ໃຊ້ ຫຼັງໝົດຊ່ວງວັນພັກ ຕາມກົດການອະນຸມັດ.")}
+        {tr("Log each holiday, how many days it covers, who it applies to (everyone, a minimum tenure, or specific people — checked automatically, so newly qualifying staff get it on their own), and the window employees have to take it. It automatically becomes a Leave Type — appearing in the Leave Quota of whoever it applies to and selectable from Leave Requests — and taking it deducts from that quota like any other leave. If someone doesn't use it (or only uses part of it), add its remaining cash value straight to their pay — calculated from each person's own daily rate, for the unused days only, once the window has closed, per the Approval Rule.", "ບັນທຶກວັນພັກ, ຈຳນວນມື້, ໃຜໄດ້ສິດ (ທຸກຄົນ, ຄົບອາຍຸງານ, ຫຼື ເລືອກລາຍຄົນ — ກວດໃຫ້ອັດຕະໂນມັດ, ຄົນທີ່ຄົບກຳນົດໃໝ່ໄດ້ເອງ) ແລະ ຊ່ວງທີ່ພັກໄດ້. ລະບົບສ້າງເປັນປະເພດລາໃຫ້ອັດຕະໂນມັດ — ມີໃນໂຄຕາການລາຂອງຄົນທີ່ໄດ້ສິດ ແລະ ເລືອກໄດ້ໃນຄຳຂໍລາ. ຖ້າໃຜບໍ່ໄດ້ໃຊ້ (ຫຼື ໃຊ້ບໍ່ໝົດ), ຈ່າຍເປັນເງິນແທນໄດ້ ຕາມຄ່າຈ້າງຕໍ່ມື້ຂອງແຕ່ລະຄົນ ສະເພາະມື້ທີ່ບໍ່ໄດ້ໃຊ້ ຫຼັງໝົດຊ່ວງວັນພັກ ຕາມກົດການອະນຸມັດ.")}
       </Lede>
       <NewHolidayForm />
       <DataState loading={list.isLoading} error={list.error}>
@@ -33,6 +34,7 @@ function NewHolidayForm() {
   const dialogs = useDialogs();
   const create = useCreateHoliday();
   const [f, setF] = useState({ name: "", days: "1", from: "", to: "" });
+  const [who, setWho] = useState<HolidayEligibility>({ eligibility: "everyone", tenure_months: 12, people: [] });
 
   async function submit() {
     const days = parseInt(f.days);
@@ -41,31 +43,38 @@ function NewHolidayForm() {
     if (!f.from || !f.to || f.to < f.from)
       return dialogs.error(tr("Missing dates", "ຂາດວັນທີ"), new Error(tr("Enter when this holiday is valid from and to — employees can only use it within that window.", "ໃສ່ວັນເລີ່ມ ແລະ ວັນສິ້ນສຸດ — ພະນັກງານພັກໄດ້ສະເພາະໃນຊ່ວງນີ້.")));
     try {
-      await create.mutateAsync({ name: f.name.trim(), days, valid_from: f.from, valid_to: f.to });
+      await create.mutateAsync({ name: f.name.trim(), days, valid_from: f.from, valid_to: f.to, ...who });
       dialogs.success(
         tr("Added", "ເພີ່ມແລ້ວ"),
-        tr(`${f.name.trim()} (${days} day${days > 1 ? "s" : ""}, valid ${fmtDate(f.from)} – ${fmtDate(f.to)}) is now in every employee's Leave Quota and selectable from Leave Requests.`, `${f.name.trim()} (${days} ມື້, ໃຊ້ໄດ້ ${fmtDate(f.from)} – ${fmtDate(f.to)}) ເຂົ້າໂຄຕາລາພັກຂອງທຸກຄົນແລ້ວ ແລະ ເລືອກໄດ້ໃນຄຳຂໍລາພັກ.`),
+        tr(
+          `${f.name.trim()} (${days} day${days > 1 ? "s" : ""}, valid ${fmtDate(f.from)} – ${fmtDate(f.to)}) is now in the Leave Quota of: ${eligibilityText(who)}, and selectable from Leave Requests.`,
+          `${f.name.trim()} (${days} ມື້, ໃຊ້ໄດ້ ${fmtDate(f.from)} – ${fmtDate(f.to)}) ເຂົ້າໂຄຕາລາພັກຂອງ: ${eligibilityText(who)} ແລ້ວ ແລະ ເລືອກໄດ້ໃນຄຳຂໍລາພັກ.`,
+        ),
       );
       setF({ name: "", days: "1", from: "", to: "" });
+      setWho({ eligibility: "everyone", tenure_months: 12, people: [] });
     } catch (err) {
       dialogs.error(tr("Could not add", "ເພີ່ມບໍ່ສຳເລັດ"), err);
     }
   }
 
   return (
-    <div className="land-row" style={{ alignItems: "flex-end" }}>
-      <Field label={tr("Holiday name", "ຊື່ວັນພັກ")}>
-        <input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder={tr("e.g. Lao New Year", "ເຊັ່ນ ປີໃໝ່ລາວ")} maxLength={50} />
-      </Field>
-      <Field label={tr("Days", "ມື້")}>
-        <input type="number" min={1} max={30} value={f.days} onChange={(e) => setF({ ...f, days: e.target.value })} style={{ width: 80 }} />
-      </Field>
-      <Field label={tr("Valid from", "ໃຊ້ໄດ້ແຕ່")}>
-        <input type="date" value={f.from} onChange={(e) => setF({ ...f, from: e.target.value })} />
-      </Field>
-      <Field label={tr("Valid to", "ໃຊ້ໄດ້ຮອດ")}>
-        <input type="date" value={f.to} min={f.from || undefined} onChange={(e) => setF({ ...f, to: e.target.value })} />
-      </Field>
+    <div className="card">
+      <div className="land-row" style={{ alignItems: "flex-end" }}>
+        <Field label={tr("Holiday name", "ຊື່ວັນພັກ")}>
+          <input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder={tr("e.g. Lao New Year", "ເຊັ່ນ ປີໃໝ່ລາວ")} maxLength={50} />
+        </Field>
+        <Field label={tr("Days", "ມື້")}>
+          <input type="number" min={1} max={30} value={f.days} onChange={(e) => setF({ ...f, days: e.target.value })} style={{ width: 80 }} />
+        </Field>
+        <Field label={tr("Valid from", "ໃຊ້ໄດ້ແຕ່")}>
+          <input type="date" value={f.from} onChange={(e) => setF({ ...f, from: e.target.value })} />
+        </Field>
+        <Field label={tr("Valid to", "ໃຊ້ໄດ້ຮອດ")}>
+          <input type="date" value={f.to} min={f.from || undefined} onChange={(e) => setF({ ...f, to: e.target.value })} />
+        </Field>
+      </div>
+      <HolidayEligibilityFields value={who} onChange={setWho} />
       <button type="button" className="add-line-btn" onClick={submit} disabled={create.isPending}>
         {tr("+ Add holiday", "+ ເພີ່ມວັນພັກ")}
       </button>
@@ -123,8 +132,8 @@ function HolidayCard({ h }: { h: PublicHoliday }) {
       </Modal>
       <p className="hint">
         {tr(
-          `${h.days} day${h.days > 1 ? "s" : ""} · valid ${fmtDate(h.valid_from)} – ${fmtDate(h.valid_to)} · also a Leave Type, so it's in every employee's Leave Quota and pickable from Leave Requests.`,
-          `${h.days} ມື້ · ໃຊ້ໄດ້ ${fmtDate(h.valid_from)} – ${fmtDate(h.valid_to)} · ເປັນປະເພດລາພັກນຳ, ຈຶ່ງຢູ່ໃນໂຄຕາລາພັກຂອງທຸກຄົນ ແລະ ເລືອກໄດ້ໃນຄຳຂໍລາພັກ.`,
+          `${h.days} day${h.days > 1 ? "s" : ""} · valid ${fmtDate(h.valid_from)} – ${fmtDate(h.valid_to)} · who gets it: ${eligibilityText(h)} (${h.eligible} now) · also a Leave Type, so it's in their Leave Quota and pickable from Leave Requests.`,
+          `${h.days} ມື້ · ໃຊ້ໄດ້ ${fmtDate(h.valid_from)} – ${fmtDate(h.valid_to)} · ໃຜໄດ້ສິດ: ${eligibilityText(h)} (ຕອນນີ້ ${h.eligible} ຄົນ) · ເປັນປະເພດລາພັກນຳ, ຈຶ່ງຢູ່ໃນໂຄຕາລາພັກຂອງເຂົາ ແລະ ເລືອກໄດ້ໃນຄຳຂໍລາພັກ.`,
         )}
       </p>
       {!h.paid_out_month && !h.payout_pending && (
@@ -153,9 +162,14 @@ function EditHolidayForm({ h, onDone }: { h: PublicHoliday; onDone: () => void }
   const dialogs = useDialogs();
   const update = useUpdateHoliday();
   const [f, setF] = useState({ name: h.name, days: String(h.days), from: h.valid_from, to: h.valid_to });
+  const [who, setWho] = useState<HolidayEligibility>({
+    eligibility: h.eligibility,
+    tenure_months: h.eligibility === "tenure" ? h.tenure_months : 12,
+    people: h.people,
+  });
   async function submit() {
     try {
-      await update.mutateAsync({ id: h.id, name: f.name.trim(), days: parseInt(f.days) || 0, valid_from: f.from, valid_to: f.to });
+      await update.mutateAsync({ id: h.id, name: f.name.trim(), days: parseInt(f.days) || 0, valid_from: f.from, valid_to: f.to, ...who });
       onDone();
       dialogs.success(tr("Saved", "ບັນທຶກແລ້ວ"), tr(`${f.name.trim()} updated — everyone's Leave Quota follows the new number of days.`, `ອັບເດດ ${f.name.trim()} ແລ້ວ — ໂຄຕາລາພັກຂອງທຸກຄົນປ່ຽນຕາມຈຳນວນມື້ໃໝ່.`));
     } catch (err) {
@@ -178,6 +192,7 @@ function EditHolidayForm({ h, onDone }: { h: PublicHoliday; onDone: () => void }
           <input type="date" value={f.to} min={f.from || undefined} onChange={(e) => setF({ ...f, to: e.target.value })} />
         </Field>
       </div>
+      <HolidayEligibilityFields value={who} onChange={setWho} />
       <button type="button" className="submit-btn" onClick={submit} disabled={update.isPending}>
         {tr("💾 Save holiday", "💾 ບັນທຶກວັນພັກ")}
       </button>

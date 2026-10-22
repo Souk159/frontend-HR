@@ -369,16 +369,18 @@ function PayrollFlags({ f, set }: { f: StaffInput; set: <K extends keyof StaffIn
       </label>
       <label className="check-label">
         <input type="checkbox" checked={f.always_full_service} onChange={(e) => set("always_full_service", e.target.checked)} />
-        Always gets full service charge (even on leave)
+        {tr("Always gets full service charge (even on leave)", "ໄດ້ຄ່າບໍລິການເຕັມສະເໝີ (ເຖິງວ່າລາພັກ)")}
       </label>
       <label className="check-label">
         <input type="checkbox" checked={!f.requires_scan} onChange={(e) => set("requires_scan", !e.target.checked)} />
         {tr("No fingerprint scan needed (e.g. GM, HR) — full salary, no OT", "ບໍ່ຕ້ອງສະແກນ (ເຊັ່ນ GM, HR) — ເງິນເດືອນເຕັມ, ບໍ່ມີ OT")}
       </label>
-      <label className="check-label">
-        <input type="checkbox" checked={f.gets_annual_leave} onChange={(e) => set("gets_annual_leave", e.target.checked)} />
-        Gets annual leave quota (appears on Leave Quota)
-      </label>
+      <p className="hint" style={{ margin: "4px 0 8px" }}>
+        {tr(
+          "Annual leave, public holiday and weekly holiday start by length of service — see Employee Status, where HR can also tick or untick them for one person.",
+          "ລາພັກປະຈຳປີ, ວັນພັກລັດຖະການ ແລະ ວັນພັກປະຈຳອາທິດ ເລີ່ມຕາມອາຍຸງານ — ເບິ່ງໜ້າ ສະຖານະພະນັກງານ, ບ່ອນທີ່ HR ໝາຍ ຫຼື ຍົກເລີກ ໃຫ້ລາຍຄົນໄດ້.",
+        )}
+      </p>
       {(bonusTypes.data ?? []).length > 0 && (
         <>
           <label style={{ marginTop: 8 }}>{tr("Bonuses", "ໂບນັດ")}</label>

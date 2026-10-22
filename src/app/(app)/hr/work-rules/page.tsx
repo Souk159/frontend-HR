@@ -79,6 +79,12 @@ function OrgSettingsCard({ current }: { current: OrgSettings }) {
             <option value="weekly">{tr("That week only", "ສະເພາະອາທິດນັ້ນ")}</option>
           </select>
         </Field>
+        <Field
+          label={tr("OT paid only once finalized, from", "ຈ່າຍ OT ສະເພາະທີ່ Finalize ແລ້ວ ຕັ້ງແຕ່ເດືອນ")}
+          hint={tr("Empty = OT always comes from the scans.", "ປະຫວ່າງ = OT ມາຈາກການສະແກນສະເໝີ.")}
+        >
+          <input type="month" value={f.ot_finalize_from} onChange={(e) => setF({ ...f, ot_finalize_from: e.target.value })} />
+        </Field>
       </div>
       <button type="button" className="mini-btn" onClick={submit} disabled={!dirty || save.isPending}>
         {tr("Save settings", "ບັນທຶກການຕັ້ງຄ່າ")}

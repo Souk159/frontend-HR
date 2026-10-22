@@ -5,31 +5,36 @@ import { ApiError, api } from "@/lib/api";
 import type {
   Accepted,
   Account,
-  PropertyAdmin,
   Approval,
   ApprovalRule,
   Attendance,
+  BenefitKey,
+  Benefits,
   BonusType,
   Coordinator,
   CostLines,
   Created,
-  FinalPayRow,
-  ManualHours,
-  OrgSettings,
-  PublicHoliday,
   DailyHire,
   DailyHireDay,
   Department,
   DeptRules,
+  FinalPayRow,
+  HolidayEligibility,
   HRAccess,
   LeaveBalance,
   LeaveRequest,
   LeaveType,
+  ManualHours,
   OrgBranch,
+  OrgSettings,
+  OTDay,
+  OTKind,
   Outlet,
   Overview,
   PayrollPreview,
   Property,
+  PropertyAdmin,
+  PublicHoliday,
   ScAllocation,
   Scanner,
   ServiceChargePool,
@@ -62,9 +67,11 @@ export const hrKeys = {
   approvalRules: ["hr", "approval-rules"] as const,
   resigned: ["hr", "resigned"] as const,
   manualHours: (month: string) => ["hr", "manual-hours", month] as const,
+  ot: (date: string) => ["hr", "ot", date] as const,
   bonusTypes: (month: string) => ["hr", "bonus-types", month] as const,
   costLines: ["hr", "cost-lines"] as const,
   holidays: ["hr", "public-holidays"] as const,
+  benefits: ["hr", "benefits"] as const,
   accounts: ["hr", "accounts"] as const,
   propertiesAll: ["hr", "properties", "all"] as const,
   scannerSettings: ["hr", "scanner-settings"] as const,
@@ -144,6 +151,7 @@ export const useApprovalRules = () =>
     queryFn: () => api.get<{ rules: ApprovalRule[]; pending_change: string | null }>("/hr/approval-rules"),
   });
 export const useResigned = () => useQuery({ queryKey: hrKeys.resigned, queryFn: () => api.get<FinalPayRow[]>("/hr/resigned") });
+export const useOT = (date: string) => useQuery({ queryKey: hrKeys.ot(date), queryFn: () => api.get<OTDay>(`/hr/ot?date=${date}`) });
 export const useManualHours = (month: string) =>
   useQuery({ queryKey: hrKeys.manualHours(month), queryFn: () => api.get<ManualHours>(`/hr/manual-hours?month=${month}`) });
 export const useBonusTypes = (month: string, enabled = true) =>
@@ -163,6 +171,15 @@ export const useAllProperties = (enabled = true) =>
   useQuery({ queryKey: hrKeys.propertiesAll, queryFn: () => api.get<PropertyAdmin[]>("/hr/properties/all"), enabled });
 export const useScannerSettings = () =>
   useQuery({ queryKey: hrKeys.scannerSettings, queryFn: () => api.get<{ adms_server: string }>("/hr/scanner-settings") });
+export const useBenefits = () => useQuery({ queryKey: hrKeys.benefits, queryFn: () => api.get<Benefits>("/hr/benefits") });
+/** granted null = back to the length-of-service rule */
+export const useRequestBenefitOverride = () =>
+  useHRMutation(
+    (body: { user_id: string; benefit: BenefitKey; granted: boolean | null }) => api.post<Accepted>("/hr/benefits/override", body),
+    [HR_ALL],
+  );
+export const useRequestBenefitRules = () =>
+  useHRMutation((body: Record<BenefitKey, number>) => api.put<Accepted>("/hr/benefits/rules", body), [HR_ALL]);
 export const usePublicHolidays = () =>
   useQuery({ queryKey: hrKeys.holidays, queryFn: () => api.get<PublicHoliday[]>("/hr/public-holidays") });
 
@@ -307,6 +324,18 @@ export const useManualClock = () =>
       api.post<Accepted>("/hr/manual-hours/day", body),
     [HR_ALL],
   );
+/** Corrections to a date's OT list — back to draft until the date is finalized again. */
+export const useSaveOTDay = () =>
+  useHRMutation(
+    (body: { date: string; lines: { user_id: string; final_hours: number; kind: OTKind; removed: boolean }[] }) =>
+      api.put<{ changed: number }>("/hr/ot/day", body),
+    [["hr", "ot"], ["hr", "payroll"]],
+  );
+export const useFinalizeOTDay = () =>
+  useHRMutation(
+    (body: { date: string; doc_ref: string }) => api.post<{ people: number; hours: number }>("/hr/ot/day/finalize", body),
+    [["hr", "ot"], ["hr", "payroll"], ["hr", "manual-hours"]],
+  );
 export const useManualTotal = () =>
   useHRMutation(
     (body: { user_id: string; month: string; hours_worked: number; ot_hours: number; ot_hours_daily: number; reason: string }) =>
@@ -321,9 +350,10 @@ export const useCreateBonusType = () =>
   useHRMutation((body: BonusTypeInput) => api.post<{ id: string }>("/hr/bonus-types", body), [HR_ALL]);
 export const useDeleteBonusType = () => useHRMutation((id: string) => api.del(`/hr/bonus-types/${id}`), [HR_ALL]);
 export const useCreateHoliday = () =>
-  useHRMutation((body: { name: string; days: number; valid_from: string; valid_to: string }) => api.post("/hr/public-holidays", body), [
-    HR_ALL,
-  ]);
+  useHRMutation(
+    (body: { name: string; days: number; valid_from: string; valid_to: string } & HolidayEligibility) => api.post("/hr/public-holidays", body),
+    [HR_ALL],
+  );
 export const useHolidayPayout = () =>
   useHRMutation(({ id, month }: { id: string; month: string }) => api.post<Accepted>(`/hr/public-holidays/${id}/payout`, { month }), [
     HR_ALL,
@@ -408,7 +438,7 @@ export const useUpdateBonusType = () =>
   useHRMutation(({ id, body }: { id: string; body: BonusTypeInput }) => api.put(`/hr/bonus-types/${id}`, body), [HR_ALL]);
 export const useUpdateHoliday = () =>
   useHRMutation(
-    ({ id, ...body }: { id: string; name: string; days: number; valid_from: string; valid_to: string }) =>
+    ({ id, ...body }: { id: string; name: string; days: number; valid_from: string; valid_to: string } & HolidayEligibility) =>
       api.put(`/hr/public-holidays/${id}`, body),
     [HR_ALL],
   );

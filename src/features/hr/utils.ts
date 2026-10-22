@@ -32,6 +32,8 @@ const APPROVAL_LABELS: Record<string, [string, string]> = {
   public_holiday_payout: ["Public holiday payout", "ຈ່າຍເງິນແທນວັນພັກ"],
   hours_edit: ["Working hours edit", "ແກ້ຊົ່ວໂມງເຮັດວຽກ"],
   dept_cost_labels: ["Department cost labels", "ປ້າຍຕົ້ນທຶນພະແນກ"],
+  benefit_eligibility_change: ["Benefit eligibility change", "ປ່ຽນສິດສະຫວັດດີການ"],
+  benefit_rule_change: ["Benefit rule change", "ປ່ຽນກົດສະຫວັດດີການ"],
 };
 /** Lao display for the built-in Approval Rule descriptions (the API sends English). */
 const RULE_LABELS_LO: Record<string, string> = {
@@ -50,6 +52,8 @@ const RULE_LABELS_LO: Record<string, string> = {
   meal_quota_change: "ປ່ຽນໂຄຕາອາຫານພະນັກງານ",
   leave_request: "ອະນຸມັດຄຳຂໍລາພັກຂອງພະນັກງານ",
   part_time_day: "ອະນຸມັດລາຍຊື່ພາທາມປະຈຳມື້ (ຫຼື ການແກ້ໄຂ) ກ່ອນຈ່າຍ",
+  benefit_eligibility_change: "HR ໝາຍ / ຍົກເລີກ ສະຫວັດດີການ (ລາພັກປະຈຳປີ, ວັນພັກລັດຖະການ, ວັນພັກປະຈຳອາທິດ) ໃຫ້ພະນັກງານຄົນໜຶ່ງ",
+  benefit_rule_change: "ປ່ຽນໄລຍະທີ່ພະນັກງານຕ້ອງເຮັດວຽກ ກ່ອນໄດ້ລາພັກປະຈຳປີ / ວັນພັກລັດຖະການ / ວັນພັກປະຈຳອາທິດ",
 };
 export const ruleLabel = (type: string, english: string) => tr(english, RULE_LABELS_LO[type] ?? english);
 
