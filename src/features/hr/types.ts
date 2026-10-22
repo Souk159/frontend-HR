@@ -20,7 +20,8 @@ export type HRTab =
   | "cost_labels"
   | "bonus_types"
   | "public_holiday"
-  | "overtime";
+  | "overtime"
+  | "cross_help";
 
 export type HRAccess = {
   role: string;
@@ -62,6 +63,8 @@ export type Department = {
   ot_rate: number;
   /** OT over a normal day but inside the monthly limit (× hourly) */
   ot_rate_daily: number;
+  /** × hourly — bonus when its staff help another department */
+  cross_help_rate: number;
   annual_leave_quota: number;
   sick_leave_quota: number;
   /** Income Statement group its payroll posts to: Room | F&B | Activity | Other Sales */
@@ -79,8 +82,26 @@ export type DeptRules = {
   days_per_week: number;
   ot_rate: number;
   ot_rate_daily?: number;
+  cross_help_rate?: number;
   annual_leave_quota: number;
   sick_leave_quota: number;
+};
+
+/** One cross-department help entry (prototype v207 hr-crosshelp), paid as a bonus that month. */
+export type CrossHelp = {
+  id: string;
+  user_id: string;
+  name: string;
+  property: string;
+  date: string;
+  home_department: string;
+  help_department: string;
+  minutes: number;
+  /** × hourly, as it was then */
+  rate: number;
+  bonus: number;
+  note: string;
+  created_by: string;
 };
 
 export type EmploymentType = "permanent" | "probation" | "part_time" | "casual" | "intern";

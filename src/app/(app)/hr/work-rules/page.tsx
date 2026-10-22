@@ -107,6 +107,7 @@ function RulesCard({ dept, calcDays }: { dept: Department; calcDays: number }) {
     days: String(dept.days_per_week),
     ot: String(dept.ot_rate),
     otDaily: String(dept.ot_rate_daily),
+    help: String(dept.cross_help_rate),
     annual: String(dept.annual_leave_quota),
     sick: String(dept.sick_leave_quota),
   });
@@ -116,6 +117,7 @@ function RulesCard({ dept, calcDays }: { dept: Department; calcDays: number }) {
 
   async function submit() {
     const otDaily = parseFloat(f.otDaily);
+    const help = parseFloat(f.help);
     try {
       const res = await req.mutateAsync({
         id: dept.id,
@@ -124,6 +126,7 @@ function RulesCard({ dept, calcDays }: { dept: Department; calcDays: number }) {
           days_per_week: parseInt(f.days) || dept.days_per_week,
           ot_rate: parseFloat(f.ot) || dept.ot_rate,
           ot_rate_daily: isNaN(otDaily) ? dept.ot_rate_daily : otDaily,
+          cross_help_rate: isNaN(help) ? dept.cross_help_rate : help,
           annual_leave_quota: parseInt(f.annual) || 0,
           sick_leave_quota: parseInt(f.sick) || 0,
         },
@@ -149,6 +152,9 @@ function RulesCard({ dept, calcDays }: { dept: Department; calcDays: number }) {
         </Field>
         <Field label={tr("OT within the day (× hourly)", "OT ເກີນໃນມື້ (× ຄ່າຈ້າງ/ຊມ)")}>
           <input value={f.otDaily} onChange={set("otDaily")} />
+        </Field>
+        <Field label={tr("Cross-help bonus (× hourly)", "ໂບນັດຊ່ວຍຂ້າມພະແນກ (× ຄ່າຈ້າງ/ຊມ)")}>
+          <input value={f.help} onChange={set("help")} />
         </Field>
         <Field label={tr("Annual leave (days/yr)", "ລາພັກປະຈຳປີ (ມື້/ປີ)")}>
           <input value={f.annual} onChange={set("annual")} />
@@ -194,7 +200,7 @@ function DeptHeader({ dept }: { dept: Department }) {
         <>
           <input className="inline-input" value={name} onChange={(e) => setName(e.target.value)} autoFocus style={{ minWidth: 220 }} />
           <button type="button" className="mini-btn" disabled={edit.isPending || !name.trim() || name.trim() === dept.name}
-            onClick={() => run({ name: name.trim() }, `Renaming ${dept.name} to ${name.trim()}`)}>
+            onClick={() => run({ name: name.trim() }, tr(`Renaming ${dept.name} to ${name.trim()}`, `ການປ່ຽນຊື່ ${dept.name} ເປັນ ${name.trim()}`))}>
             {tr("Save name", "ບັນທຶກຊື່")}
           </button>
           <button type="button" className="mini-btn" onClick={() => (setRenaming(false), setName(dept.name))}>

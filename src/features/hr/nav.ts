@@ -30,6 +30,8 @@ export const HR_NAV: NavItem[] = [
 
   { href: "/hr/attendance", label: "tb_attendance", icon: "🕘", group: "time", needs: "attendance" },
   { href: "/hr/overtime", label: "tb_overtime", icon: "⏳", group: "time", needs: "overtime" },
+  { href: "/hr/cross-help", label: "tb_cross_help", icon: "📞", group: "time", needs: "cross_help" },
+  { href: "/hr/cross-help-history", label: "tb_cross_help_history", icon: "🗂️", group: "time", needs: "cross_help" },
   { href: "/hr/manual-hours", label: "tb_manual_hours", icon: "✍️", group: "time", needs: "manual_hours" },
   { href: "/hr/part-time", label: "tb_part_time", icon: "🧑‍🍳", group: "time", needs: "part_time" },
   { href: "/hr/leave", label: "tb_leave_requests", icon: "🌴", group: "time", needs: "leave" },

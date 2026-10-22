@@ -6,7 +6,7 @@ import { Field, useDialogs } from "@/components/ui";
 import { useRequestNewDepartment } from "../api";
 import { requestOutcome } from "../utils";
 
-const initial = { name: "", quota: "5", base_salary: "", hours_per_day: "8", days_per_week: "6", ot_rate: "1.5", ot_rate_daily: "0.5", annual: "15", sick: "10" };
+const initial = { name: "", quota: "5", base_salary: "", hours_per_day: "8", days_per_week: "6", ot_rate: "1.5", ot_rate_daily: "0.5", cross_help_rate: "1", annual: "15", sick: "10" };
 
 /** Prototype #newDeptForm — a new department goes through the Approval Rule. */
 export function NewDepartmentForm({ onDone }: { onDone: () => void }) {
@@ -26,6 +26,7 @@ export function NewDepartmentForm({ onDone }: { onDone: () => void }) {
         days_per_week: parseInt(f.days_per_week) || 6,
         ot_rate: parseFloat(f.ot_rate) || 1.5,
         ot_rate_daily: parseFloat(f.ot_rate_daily) || 0,
+        cross_help_rate: isNaN(parseFloat(f.cross_help_rate)) ? 1 : parseFloat(f.cross_help_rate),
         annual_leave_quota: parseInt(f.annual) || 15,
         sick_leave_quota: parseInt(f.sick) || 10,
       });
@@ -64,6 +65,9 @@ export function NewDepartmentForm({ onDone }: { onDone: () => void }) {
         </Field>
         <Field label={tr("OT within the day (× hourly)", "OT ເກີນໃນມື້ (× ຄ່າຈ້າງ/ຊມ)")}>
           <input value={f.ot_rate_daily} onChange={set("ot_rate_daily")} />
+        </Field>
+        <Field label={tr("Cross-help bonus (× hourly)", "ໂບນັດຊ່ວຍຂ້າມພະແນກ (× ຄ່າຈ້າງ/ຊມ)")}>
+          <input value={f.cross_help_rate} onChange={set("cross_help_rate")} />
         </Field>
         <Field label={tr("Annual leave (days/yr)", "ລາພັກປະຈຳປີ (ມື້/ປີ)")}>
           <input value={f.annual} onChange={set("annual")} />

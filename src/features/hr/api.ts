@@ -14,6 +14,7 @@ import type {
   Coordinator,
   CostLines,
   Created,
+  CrossHelp,
   DailyHire,
   DailyHireDay,
   Department,
@@ -72,6 +73,7 @@ export const hrKeys = {
   costLines: ["hr", "cost-lines"] as const,
   holidays: ["hr", "public-holidays"] as const,
   benefits: ["hr", "benefits"] as const,
+  crossHelp: (year: string) => ["hr", "cross-help", year] as const,
   accounts: ["hr", "accounts"] as const,
   propertiesAll: ["hr", "properties", "all"] as const,
   scannerSettings: ["hr", "scanner-settings"] as const,
@@ -180,6 +182,16 @@ export const useRequestBenefitOverride = () =>
   );
 export const useRequestBenefitRules = () =>
   useHRMutation((body: Record<BenefitKey, number>) => api.put<Accepted>("/hr/benefits/rules", body), [HR_ALL]);
+export const useCrossHelp = (year: string) =>
+  useQuery({ queryKey: hrKeys.crossHelp(year), queryFn: () => api.get<CrossHelp[]>(`/hr/cross-help?year=${year}`) });
+export const useCreateCrossHelp = () =>
+  useHRMutation(
+    (body: { user_id: string; date: string; help_department_id: string; minutes: number; note: string }) =>
+      api.post<{ id: string; bonus: number; rate: number }>("/hr/cross-help", body),
+    [["hr", "cross-help"], ["hr", "payroll"]],
+  );
+export const useDeleteCrossHelp = () =>
+  useHRMutation((id: string) => api.del(`/hr/cross-help/${id}`), [["hr", "cross-help"], ["hr", "payroll"]]);
 export const usePublicHolidays = () =>
   useQuery({ queryKey: hrKeys.holidays, queryFn: () => api.get<PublicHoliday[]>("/hr/public-holidays") });
 
