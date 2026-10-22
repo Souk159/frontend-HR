@@ -193,7 +193,7 @@ function MealRow({
         />
       </td>
       <td style={{ whiteSpace: "nowrap" }}>
-        <button type="button" className="mini-btn" onClick={onMeal} disabled={s.status === "resigned" || u.left_month === 0}>
+        <button type="button" className="mini-btn" onClick={onMeal} disabled={s.status === "resigned" || u.left_month === 0 || (s.meal_quota_per_day > 0 && u.left_today === 0)}>
           {tr("+ Meal", "+ ຄາບອາຫານ")}
         </button>
         <button type="button" className="mini-btn" onClick={onSave}>

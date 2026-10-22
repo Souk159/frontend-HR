@@ -70,7 +70,7 @@ export function printPayrollSheet(p: PayrollPreview, resort: string | null) {
             <td class="r">${lak(r.quota_bonus)}</td><td class="r">${lak(r.other_bonuses)}</td><td class="r"><b>${net}</b></td><td></td></tr>`;
         })
         .join("");
-      return `<h3>${esc(d.name)} <small>(${num(d.hours_per_day)}h/day, ${d.days_per_week} days/week)</small></h3>
+      return `<h3>${esc(d.name)} <small>(${tr(`${num(d.hours_per_day)}h/day, ${d.days_per_week} days/week`, `${num(d.hours_per_day)} ຊມ/ມື້, ${d.days_per_week} ມື້/ອາທິດ`)})</small></h3>
         <table><tr><th>ID</th><th>${tr("Employee", "ພະນັກງານ")}</th><th>${tr("Base salary", "ເງິນເດືອນ")}</th><th>${tr("Hours", "ຊົ່ວໂມງ")}</th>
         <th>${tr("Deduction", "ຫັກ")}</th><th>OT</th><th>${tr("Service charge", "ຄ່າບໍລິການ")}</th><th>${tr("Bonus", "ໂບນັດ")}</th>
         <th>${tr("Other bonuses", "ໂບນັດອື່ນ")}</th><th>${tr("Net salary", "ເງິນເດືອນສຸດທິ")}</th><th>${tr("Signature", "ລາຍເຊັນ")}</th></tr>${rows}

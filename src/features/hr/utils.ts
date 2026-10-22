@@ -118,9 +118,16 @@ export function batchOutcome(res: { requests_created: number; applied?: number }
   ];
 }
 
+/** fixed change values the server writes in English */
+const VALUE_LO: Record<string, string> = {
+  "Follows the rule": "ໃຫ້ຕາມກົດ",
+  "Granted (set by HR)": "ໃຫ້ສິດ (HR ກຳນົດ)",
+  "Not granted (set by HR)": "ບໍ່ໃຫ້ສິດ (HR ກຳນົດ)",
+};
+
 /** "₭3,200,000 → ₭3,500,000" / "3 → 4" / "old → new" (prototype change column) */
 export function approvalChange(a: Approval): string {
-  const fmt = (v: string) => (a.value_format === "currency" && v.trim() !== "" && !isNaN(Number(v)) ? lak(Number(v)).replace(" ", "") : v);
+  const fmt = (v: string) => (a.value_format === "currency" && v.trim() !== "" && !isNaN(Number(v)) ? lak(Number(v)).replace(" ", "") : tr(v, VALUE_LO[v] ?? v));
   return `${fmt(a.old_value)} → ${fmt(a.new_value)}`;
 }
 
