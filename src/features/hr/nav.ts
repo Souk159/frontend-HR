@@ -40,6 +40,7 @@ export const HR_NAV: NavItem[] = [
 
   { href: "/hr/payroll", label: "tb_payroll", icon: "💰", group: "pay", needs: "payroll" },
   { href: "/hr/service-charge", label: "tb_service_charge_bonus", icon: "🧾", group: "pay", needs: "service_charge" },
+  { href: "/hr/service-charge-manual", label: "tb_sc_manual", icon: "💵", group: "pay", needs: "service_charge" },
   { href: "/hr/bonus-types", label: "tb_bonus_types", icon: "🎁", group: "pay", needs: "bonus_types" },
   { href: "/hr/meal-quota", label: "tb_meal_quota", icon: "🍱", group: "pay", needs: "meal_quota" },
   { href: "/hr/cost-labels", label: "tb_cost_labels", icon: "🏷️", group: "pay", needs: "cost_labels" },

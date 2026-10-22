@@ -10,6 +10,7 @@ import { NewDepartmentForm } from "@/features/hr/components/NewDepartmentForm";
 import type { Staff } from "@/features/hr/types";
 import { batchOutcome, deptLabel, groupByDept, matchesSearch } from "@/features/hr/utils";
 import { ResignModal } from "@/features/hr/components/ResignModal";
+import { TransferModal } from "@/features/hr/components/TransferModal";
 
 export default function DirectoryPage() {
   const { t } = useLang();
@@ -25,6 +26,7 @@ export default function DirectoryPage() {
   const [showNewDept, setShowNewDept] = useState(false);
   const [editing, setEditing] = useState<Staff | "new" | null>(null);
   const [resigning, setResigning] = useState<Staff | null>(null);
+  const [transferring, setTransferring] = useState<Staff | null>(null);
   // draft quota / base salary per department id
   const [drafts, setDrafts] = useState<Record<string, { quota?: string; base_salary?: string }>>({});
 
@@ -146,6 +148,9 @@ export default function DirectoryPage() {
                       <button type="button" className="mini-btn" onClick={() => setEditing(e)}>
                         {tr("Edit", "ແກ້ໄຂ")}
                       </button>
+                      <button type="button" className="mini-btn" onClick={() => setTransferring(e)}>
+                        {tr("Transfer", "ຍ້າຍ")}
+                      </button>
                       <button type="button" className="mini-btn flag" onClick={() => setResigning(e)}>
                         {tr("Resignation", "ລາອອກ")}
                       </button>
@@ -166,6 +171,7 @@ export default function DirectoryPage() {
 
       <EmployeeFormModal editing={editing} onClose={() => setEditing(null)} />
       <ResignModal employee={resigning} onClose={() => setResigning(null)} />
+      <TransferModal employee={transferring} onClose={() => setTransferring(null)} />
     </div>
   );
 }

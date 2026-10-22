@@ -144,6 +144,8 @@ export type Staff = {
   final_hours: number | null;
   meal_quota: number;
   meals_used: number;
+  /** 0 = no daily limit */
+  meal_quota_per_day: number;
   benefit_notes: string;
   role: string;
   has_login: boolean;
@@ -297,18 +299,59 @@ export type Accepted = { approval_id: string; applied: boolean };
 export type Created = { requests_created: number; applied: number };
 
 export type ScAllocation = { label: string; pct: number; is_staff_pool: boolean };
+/** One resort's service charge for a month (pooled per resort). */
 export type ServiceChargePool = {
-  month: string;
+  /** null = staff / sales with no resort */
+  property_id: string | null;
+  property: string;
+  source: "pos" | "manual";
+  pos_total: number;
+  manual_total: number | null;
   total_service_charge: number;
-  staff_pool_pct: number;
   staff_pool: number;
   service_eligible: number;
   /** employees marked "always full service charge" */
   full_share_count: number;
   /** full share per eligible employee (pool ÷ eligible) */
   service_share: number;
-  allocation: ScAllocation[];
 };
+export type ServiceChargeMonth = {
+  month: string;
+  staff_pool_pct: number;
+  allocation: ScAllocation[];
+  pools: ServiceChargePool[];
+};
+/** Manual service charge screen: one resort's pool, its staff and the recorded splits. */
+export type ScSplit = {
+  month: string;
+  closed: boolean;
+  pool: ServiceChargePool;
+  rows: {
+    user_id: string;
+    name: string;
+    department: string;
+    status: string;
+    gets: boolean;
+    full: boolean;
+    pending: boolean;
+    basis: string;
+    hours: number;
+    required: number;
+    amount: number;
+  }[];
+  records: {
+    id: string;
+    month: string;
+    source: "pos" | "manual";
+    total: number;
+    staff_pool: number;
+    rows: { name: string; department: string; basis: string; amount: number }[];
+    recorded_by: string;
+    recorded_at: string;
+  }[];
+};
+export type MealUse = { user_id: string; used_today: number; used_month: number; left_today: number; left_month: number; lost: number };
+export type MealLogEntry = { id: string; user_id: string; name: string; date: string; meals: number; note: string; created_by: string };
 
 export type OrgSettings = {
   salary_calc_days: number;
@@ -317,6 +360,8 @@ export type OrgSettings = {
   ot_basis: "monthly" | "weekly";
   /** first month (YYYY-MM) whose OT is paid only once finalized against the signed OT document; "" = never */
   ot_finalize_from: string;
+  /** unused daily staff meals: lost at the end of the day, or carried over within the month */
+  meal_unused_daily: "expire" | "carry";
 };
 
 export type OTKind = "over" | "daily";

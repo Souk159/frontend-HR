@@ -26,6 +26,8 @@ import type {
   LeaveRequest,
   LeaveType,
   ManualHours,
+  MealLogEntry,
+  MealUse,
   OrgBranch,
   OrgSettings,
   OTDay,
@@ -38,7 +40,8 @@ import type {
   PublicHoliday,
   ScAllocation,
   Scanner,
-  ServiceChargePool,
+  ScSplit,
+  ServiceChargeMonth,
   Staff,
   StaffInput,
 } from "./types";
@@ -90,8 +93,13 @@ export const useStaff = (includeResigned = false) =>
     queryKey: hrKeys.staff(includeResigned),
     queryFn: () => api.get<Staff[]>(`/hr/staff${includeResigned ? "?include_resigned=1" : ""}`),
   });
-export const useProperties = () =>
-  useQuery({ queryKey: hrKeys.properties, queryFn: () => api.get<Property[]>("/hr/properties"), staleTime: 300_000 });
+/** the resorts the user works with; all = every resort (a resort account otherwise gets only its own) */
+export const useProperties = (all = false) =>
+  useQuery({
+    queryKey: all ? [...hrKeys.properties, "all"] : hrKeys.properties,
+    queryFn: () => api.get<Property[]>(all ? "/hr/properties?all=1" : "/hr/properties"),
+    staleTime: 300_000,
+  });
 export const useOutlets = () =>
   useQuery({ queryKey: hrKeys.outlets, queryFn: () => api.get<Outlet[]>("/hr/outlets"), staleTime: 300_000 });
 export const useAttendance = (date: string) =>
@@ -133,7 +141,7 @@ export const useApprovalDetail = (id: string | null) =>
 export const useServiceCharge = (month: string) =>
   useQuery({
     queryKey: hrKeys.serviceCharge(month),
-    queryFn: () => api.get<ServiceChargePool>(`/hr/service-charge?month=${month}`),
+    queryFn: () => api.get<ServiceChargeMonth>(`/hr/service-charge?month=${month}`),
   });
 export const usePayroll = (month: string) =>
   useQuery({ queryKey: hrKeys.payroll(month), queryFn: () => api.get<PayrollPreview>(`/hr/payroll-live?month=${month}`) });
@@ -192,6 +200,37 @@ export const useCreateCrossHelp = () =>
   );
 export const useDeleteCrossHelp = () =>
   useHRMutation((id: string) => api.del(`/hr/cross-help/${id}`), [["hr", "cross-help"], ["hr", "payroll"]]);
+export const useScSplit = (month: string, propertyId: string) =>
+  useQuery({
+    queryKey: ["hr", "service-charge", "split", month, propertyId],
+    enabled: !!propertyId,
+    queryFn: () => api.get<ScSplit>(`/hr/service-charge/split?month=${month}&property_id=${propertyId}`),
+  });
+const SC: QueryKey[] = [["hr", "service-charge"], ["hr", "payroll"]];
+/** total null = back to the POS total */
+export const useSetManualServiceCharge = () =>
+  useHRMutation((body: { month: string; property_id: string; total: number | null }) => api.put("/hr/service-charge/manual", body), SC);
+export const useRecordScSplit = () =>
+  useHRMutation((body: { month: string; property_id: string }) => api.post<{ id: string; employees: number }>("/hr/service-charge/record", body), SC);
+export const useRequestScEligibility = () =>
+  useHRMutation(
+    (body: { user_id: string; gets: boolean; full: boolean }[]) =>
+      api.post<{ requests_created: number; applied: number }>("/hr/service-charge/eligibility", body),
+    [HR_ALL],
+  );
+export const useMeals = () =>
+  useQuery({ queryKey: ["hr", "meals"], queryFn: () => api.get<{ date: string; unused_daily: "expire" | "carry"; rows: MealUse[] }>("/hr/meals") });
+export const useMealLog = (month: string) =>
+  useQuery({ queryKey: ["hr", "meals", "log", month], queryFn: () => api.get<MealLogEntry[]>(`/hr/meals/log?month=${month}`) });
+const MEALS: QueryKey[] = [["hr", "meals"], ["hr", "staff"]];
+export const useRecordMeal = () =>
+  useHRMutation((body: { user_id: string; date: string; meals: number; note: string }) => api.post("/hr/meals", body), MEALS);
+export const useDeleteMeal = () => useHRMutation((id: string) => api.del(`/hr/meals/${id}`), MEALS);
+export const useRequestTransfer = () =>
+  useHRMutation(
+    ({ id, ...body }: { id: string; department_id: string; property_id: string }) => api.post<Accepted>(`/hr/staff/${id}/transfer`, body),
+    [HR_ALL],
+  );
 export const usePublicHolidays = () =>
   useQuery({ queryKey: hrKeys.holidays, queryFn: () => api.get<PublicHoliday[]>("/hr/public-holidays") });
 
@@ -238,7 +277,7 @@ export const useRequestResignation = () =>
   );
 export const useRequestMealQuotas = () =>
   useHRMutation(
-    (body: { user_id: string; meal_quota: number }[]) => api.post<Created>("/hr/staff/meal-quotas", body),
+    (body: { user_id: string; meal_quota: number; meal_quota_per_day?: number }[]) => api.post<Created>("/hr/staff/meal-quotas", body),
     [HR_ALL],
   );
 /** Profile photo — applies immediately (no approval). */

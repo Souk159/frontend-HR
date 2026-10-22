@@ -33,6 +33,8 @@ const APPROVAL_LABELS: Record<string, [string, string]> = {
   hours_edit: ["Working hours edit", "ແກ້ຊົ່ວໂມງເຮັດວຽກ"],
   dept_cost_labels: ["Department cost labels", "ປ້າຍຕົ້ນທຶນພະແນກ"],
   benefit_eligibility_change: ["Benefit eligibility change", "ປ່ຽນສິດສະຫວັດດີການ"],
+  employee_transfer: ["Employee transfer", "ຍ້າຍພະນັກງານ"],
+  service_charge_eligibility_change: ["Service charge eligibility change", "ປ່ຽນສິດຄ່າບໍລິການ"],
   benefit_rule_change: ["Benefit rule change", "ປ່ຽນກົດສະຫວັດດີການ"],
 };
 /** Lao display for the built-in Approval Rule descriptions (the API sends English). */
@@ -52,6 +54,8 @@ const RULE_LABELS_LO: Record<string, string> = {
   meal_quota_change: "ປ່ຽນໂຄຕາອາຫານພະນັກງານ",
   leave_request: "ອະນຸມັດຄຳຂໍລາພັກຂອງພະນັກງານ",
   part_time_day: "ອະນຸມັດລາຍຊື່ພາທາມປະຈຳມື້ (ຫຼື ການແກ້ໄຂ) ກ່ອນຈ່າຍ",
+  employee_transfer: "ຍ້າຍພະນັກງານໄປພະແນກ ຫຼື ຣີສອດອື່ນ",
+  service_charge_eligibility_change: "ປ່ຽນວ່າພະນັກງານໄດ້ຄ່າບໍລິການບໍ່, ຫຼື ໄດ້ສ່ວນເຕັມ / ຕາມຊົ່ວໂມງ",
   benefit_eligibility_change: "HR ໝາຍ / ຍົກເລີກ ສະຫວັດດີການ (ລາພັກປະຈຳປີ, ວັນພັກລັດຖະການ, ວັນພັກປະຈຳອາທິດ) ໃຫ້ພະນັກງານຄົນໜຶ່ງ",
   benefit_rule_change: "ປ່ຽນໄລຍະທີ່ພະນັກງານຕ້ອງເຮັດວຽກ ກ່ອນໄດ້ລາພັກປະຈຳປີ / ວັນພັກລັດຖະການ / ວັນພັກປະຈຳອາທິດ",
 };
