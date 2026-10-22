@@ -25,6 +25,7 @@ export const HR_NAV: NavItem[] = [
   { href: "/hr/directory", label: "tb_employee_directory", icon: "👥", group: "people", needs: "directory" },
   { href: "/hr/employee-status", label: "tb_employee_status", icon: "📋", group: "people", needs: "employee_status" },
   { href: "/hr/resigned", label: "tb_resigned", icon: "🚪", group: "people", needs: "resigned" },
+  { href: "/hr/years-of-service", label: "tb_years_of_service", icon: "📆", group: "people", needs: "directory" },
   { href: "/hr/org-structure", label: "tb_org_structure", icon: "🏢", group: "people", needs: "org_structure" },
   { href: "/hr/overview", label: "tb_hr_overview", icon: "📊", group: "people", needs: "overview" },
 

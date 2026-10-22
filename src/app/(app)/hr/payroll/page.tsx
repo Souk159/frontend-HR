@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { DataState, Field, Kpi, Lede, SectionHead, Table, Tag, useDialogs } from "@/components/ui";
 import { useLang, tr } from "@/lib/i18n";
-import { fmtDate, fmtMonth, lak, num, thisMonth } from "@/lib/format";
-import { useMyResort, usePayroll, usePayrollMonthAction, useSendPayroll } from "@/features/hr/api";
+import { fmtDate, fmtMonth, lak, money, num, thisMonth } from "@/lib/format";
+import { useMyResort, usePayroll, usePayrollMonthAction, useSavePayrollFx, useSendPayroll } from "@/features/hr/api";
 import type { MonthStatus, PayrollDept, PayrollPreview, PayrollRow } from "@/features/hr/types";
 import { deptLabel, fmtStamp, requestOutcome } from "@/features/hr/utils";
-import { printSlip } from "@/features/hr/print";
+import { printPayrollSheet, printSlip } from "@/features/hr/print";
 
 export default function PayrollPage() {
   const { t } = useLang();
@@ -88,6 +88,11 @@ export default function PayrollPage() {
             <MonthTag status={st} />
           </div>
         )}
+        {p && (
+          <button type="button" className="mini-btn" style={{ marginBottom: 10 }} onClick={() => printPayrollSheet(p, mine?.name ?? null)}>
+            {tr("🖨️ Print payroll", "🖨️ ພິມເງິນເດືອນ")}
+          </button>
+        )}
       </div>
       <DataState loading={payroll.isLoading} error={payroll.error}>
         {p?.closed_snapshot && (
@@ -124,6 +129,7 @@ export default function PayrollPage() {
             value={lak(p?.grand_total)}
           />
         </div>
+        {p?.fx && !mine && !p.closed_snapshot && <FxCard key={`${month}:${p.fx.usd}:${p.fx.thb}`} month={month} fx={p.fx} closed={st?.status === "closed"} />}
         {depts.map((d) => (
           <DeptCard key={d.name} dept={d} preview={p!} />
         ))}
@@ -194,7 +200,16 @@ function DeptCard({ dept: d, preview }: { dept: PayrollDept; preview: PayrollPre
         {d.rows.map((r) => (
           <tr key={r.user_id}>
             <td>{r.name}</td>
-            <td className="mono">{lak(r.base_salary)}</td>
+            <td className="mono">
+              {r.salary_currency && r.salary_currency !== "LAK" ? (
+                <>
+                  {money(r.salary_original, r.salary_currency)}
+                  <div className="hint">≈ {lak(r.base_salary)}</div>
+                </>
+              ) : (
+                lak(r.base_salary)
+              )}
+            </td>
             <td className="mono">
               {r.requires_scan ? `${num(r.effective_hours)} / ${num(r.required_hours)}` : <span className="c-soft">{tr("no scan needed", "ບໍ່ຕ້ອງສະແກນ")}</span>}
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 3 }}>
@@ -228,7 +243,12 @@ function DeptCard({ dept: d, preview }: { dept: PayrollDept; preview: PayrollPre
             <td className="mono c-gold bold" title={r.bonuses.map((b) => `${b.name}: ${lak(b.amount)}`).join("\n")}>
               {lak(r.other_bonuses)}
             </td>
-            <td className="mono bold">{lak(r.net)}</td>
+            <td className="mono bold">
+              {lak(r.net)}
+              {r.salary_currency && r.salary_currency !== "LAK" && preview.fx && (
+                <div className="hint">≈ {money(r.net / (r.salary_currency === "USD" ? preview.fx.usd : preview.fx.thb), r.salary_currency)}</div>
+              )}
+            </td>
             <td>
               <button type="button" className="mini-btn" onClick={() => payslip(r, d, preview)}>
                 {tr("📄 Payslip", "📄 ໃບເງິນເດືອນ")}
@@ -258,7 +278,10 @@ function payslip(r: PayrollRow, d: PayrollDept, p: PayrollPreview) {
       [tr("Hourly rate", "ຄ່າຈ້າງຕໍ່ຊົ່ວໂມງ"), lak(r.hourly_rate)],
     ],
     [
-      { label: tr("Base salary", "ເງິນເດືອນ"), value: lak(r.base_salary) },
+      {
+        label: tr("Base salary", "ເງິນເດືອນ"),
+        value: r.salary_currency && r.salary_currency !== "LAK" ? `${money(r.salary_original, r.salary_currency)} ≈ ${lak(r.base_salary)}` : lak(r.base_salary),
+      },
       ...(r.deduction > 0 ? [{ label: tr(`Deduction (${num(r.short_hours)}h short)`, `ຫັກ (ຂາດ ${num(r.short_hours)} ຊມ)`), value: `− ${lak(r.deduction)}`, negative: true }] : []),
       ...(r.ot_pay > 0 ? [{ label: tr(`OT (${num(r.ot_hours)}h over the limit, ${num(r.ot_hours_daily)}h within the day)`, `OT (ເກີນເດືອນ ${num(r.ot_hours)} ຊມ, ໃນມື້ ${num(r.ot_hours_daily)} ຊມ)`), value: lak(r.ot_pay) }] : []),
       ...(r.service_charge > 0 ? [{ label: tr("Service charge", "ຄ່າບໍລິການ"), value: lak(r.service_charge) }] : []),
@@ -267,5 +290,49 @@ function payslip(r: PayrollRow, d: PayrollDept, p: PayrollPreview) {
       { label: tr("Net salary", "ເງິນເດືອນສຸດທິ"), value: lak(r.net), strong: true },
     ],
     p.in_progress ? tr(`Month in progress — figures as of ${fmtDate(p.as_of)}.`, `ເດືອນຍັງບໍ່ໝົດ — ຕົວເລກ ຮອດວັນທີ ${fmtDate(p.as_of)}.`) : undefined,
+  );
+}
+
+/** ₭ per USD / THB for this month — salaries in those currencies are paid in ₭ at these rates. */
+function FxCard({ month, fx, closed }: { month: string; fx: { usd: number; thb: number; set_month: string }; closed: boolean }) {
+  const dialogs = useDialogs();
+  const save = useSavePayrollFx();
+  const [usd, setUsd] = useState(String(fx.usd));
+  const [thb, setThb] = useState(String(fx.thb));
+  async function submit() {
+    if (!(Number(usd) > 0) || !(Number(thb) > 0))
+      return dialogs.error(tr("Invalid rate", "ອັດຕາບໍ່ຖືກ"), new Error(tr("Enter a rate above 0 for both USD and THB.", "ໃສ່ອັດຕາຫຼາຍກວ່າ 0 ທັງ USD ແລະ THB.")));
+    try {
+      await save.mutateAsync({ month, usd: Number(usd), thb: Number(thb) });
+      dialogs.success(
+        tr("Rates saved", "ບັນທຶກອັດຕາແລ້ວ"),
+        tr(`${fmtMonth(month)}: 1 USD = ${lak(Number(usd))}, 1 THB = ${lak(Number(thb))}.`, `${fmtMonth(month)}: 1 USD = ${lak(Number(usd))}, 1 THB = ${lak(Number(thb))}.`),
+      );
+    } catch (err) {
+      dialogs.error(tr("Could not save", "ບັນທຶກບໍ່ສຳເລັດ"), err);
+    }
+  }
+  return (
+    <div className="card">
+      <h3 style={{ fontSize: 13 }}>{tr("Exchange rates for staff paid in USD / THB", "ອັດຕາແລກປ່ຽນ ສຳລັບພະນັກງານທີ່ຮັບເງິນເດືອນເປັນ USD / THB")}</h3>
+      <p className={`hint${fx.set_month ? "" : " warn"}`}>
+        {!fx.set_month
+          ? tr("No rates entered yet — these are placeholders. Enter this month's rates.", "ຍັງບໍ່ໄດ້ໃສ່ອັດຕາ — ນີ້ແມ່ນຄ່າຕົວຢ່າງ. ໃສ່ອັດຕາຂອງເດືອນນີ້.")
+          : fx.set_month === month
+            ? tr(`Rates entered for ${fmtMonth(month)}.`, `ອັດຕາຂອງ ${fmtMonth(month)}.`)
+            : tr(`Using the rates entered for ${fmtMonth(fx.set_month)} — save to set ${fmtMonth(month)}'s own.`, `ໃຊ້ອັດຕາຂອງ ${fmtMonth(fx.set_month)} — ບັນທຶກເພື່ອຕັ້ງອັດຕາຂອງ ${fmtMonth(month)}.`)}
+      </p>
+      <div className="land-row" style={{ alignItems: "flex-end" }}>
+        <Field label="1 USD = ₭" style={{ maxWidth: 160 }}>
+          <input inputMode="decimal" value={usd} disabled={closed} onChange={(e) => setUsd(e.target.value.replace(/[^\d.]/g, ""))} />
+        </Field>
+        <Field label="1 THB = ₭" style={{ maxWidth: 160 }}>
+          <input inputMode="decimal" value={thb} disabled={closed} onChange={(e) => setThb(e.target.value.replace(/[^\d.]/g, ""))} />
+        </Field>
+        <button type="button" className="mini-btn" onClick={submit} disabled={closed || save.isPending}>
+          {tr("Save rates", "ບັນທຶກອັດຕາ")}
+        </button>
+      </div>
+    </div>
   );
 }

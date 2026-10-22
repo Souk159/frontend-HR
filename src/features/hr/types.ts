@@ -104,6 +104,7 @@ export type CrossHelp = {
   created_by: string;
 };
 
+export type SalaryCurrency = "LAK" | "USD" | "THB";
 export type EmploymentType = "permanent" | "probation" | "part_time" | "casual" | "intern";
 export type StaffStatus = "active" | "on_leave" | "resigned";
 
@@ -146,6 +147,8 @@ export type Staff = {
   meals_used: number;
   /** 0 = no daily limit */
   meal_quota_per_day: number;
+  /** LAK | USD | THB — base_salary is in it */
+  salary_currency: SalaryCurrency;
   benefit_notes: string;
   role: string;
   has_login: boolean;
@@ -178,6 +181,7 @@ export type StaffInput = {
   position: string;
   employment_type: EmploymentType;
   base_salary: number;
+  salary_currency: SalaryCurrency;
   bank_account: string;
   note: string;
   scanner_pin: string;
@@ -356,7 +360,8 @@ export type MealLogEntry = { id: string; user_id: string; name: string; date: st
 export type OrgSettings = {
   salary_calc_days: number;
   deduction_unit: "hours" | "minutes";
-  ot_unit: "hours" | "minutes";
+  /** hours = whole hours rounded down, hours_up = a started hour counts in full */
+  ot_unit: "hours" | "hours_up" | "minutes";
   ot_basis: "monthly" | "weekly";
   /** first month (YYYY-MM) whose OT is paid only once finalized against the signed OT document; "" = never */
   ot_finalize_from: string;
@@ -417,7 +422,11 @@ export type PayrollRow = {
   employee_no: string;
   name: string;
   position: string;
+  /** in ₭ at the month's rate */
   base_salary: number;
+  salary_currency?: SalaryCurrency;
+  /** in salary_currency */
+  salary_original?: number;
   hourly_rate: number;
   hours_worked: number;
   leave_days: number;
@@ -470,6 +479,8 @@ export type PayrollPreview = {
   closed_snapshot: boolean;
   departments: PayrollDept[];
   grand_total: number;
+  /** ₭ per 1 USD / THB; set_month '' = not entered yet */
+  fx?: { usd: number; thb: number; set_month: string };
 };
 
 export type FinalPayRow = {

@@ -69,7 +69,8 @@ function OrgSettingsCard({ current }: { current: OrgSettings }) {
         </Field>
         <Field label={tr("OT counted in", "ນັບ OT ເປັນ")}>
           <select value={f.ot_unit} onChange={(e) => setF({ ...f, ot_unit: e.target.value as OrgSettings["ot_unit"] })}>
-            <option value="hours">{tr("Hours", "ຊົ່ວໂມງ")}</option>
+            <option value="hours">{tr("Hours (rounded down)", "ຊົ່ວໂມງ (ປັດລົງ)")}</option>
+            <option value="hours_up">{tr("Hours (rounded up)", "ຊົ່ວໂມງ (ປັດຂຶ້ນ)")}</option>
             <option value="minutes">{tr("Minutes", "ນາທີ")}</option>
           </select>
         </Field>

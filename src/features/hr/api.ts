@@ -226,6 +226,8 @@ const MEALS: QueryKey[] = [["hr", "meals"], ["hr", "staff"]];
 export const useRecordMeal = () =>
   useHRMutation((body: { user_id: string; date: string; meals: number; note: string }) => api.post("/hr/meals", body), MEALS);
 export const useDeleteMeal = () => useHRMutation((id: string) => api.del(`/hr/meals/${id}`), MEALS);
+export const useSavePayrollFx = () =>
+  useHRMutation((body: { month: string; usd: number; thb: number }) => api.put("/hr/payroll-live/fx", body), [["hr", "payroll"], ["hr", "service-charge"]]);
 export const useRequestTransfer = () =>
   useHRMutation(
     ({ id, ...body }: { id: string; department_id: string; property_id: string }) => api.post<Accepted>(`/hr/staff/${id}/transfer`, body),

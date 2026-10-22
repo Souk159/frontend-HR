@@ -11,6 +11,13 @@ export function lak(n: number | null | undefined): string {
   return "₭ " + Math.round(n ?? 0).toLocaleString("en-US");
 }
 
+const CUR_SYMBOL: Record<string, string> = { LAK: "₭", USD: "$", THB: "฿" };
+/** "$ 1,500" / "฿ 30,000" / "₭ 3,200,000" */
+export function money(n: number | null | undefined, currency = "LAK"): string {
+  if (!currency || currency === "LAK") return lak(n);
+  return `${CUR_SYMBOL[currency] ?? currency} ${(Math.round((n ?? 0) * 100) / 100).toLocaleString("en-US")}`;
+}
+
 /** "2026-08-26" → "26 Aug 2026" (prototype date style). Null → "—" */
 export function fmtDate(iso: string | null | undefined): string {
   if (!iso) return "—";

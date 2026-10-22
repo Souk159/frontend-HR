@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Avatar, DataState, EmptyRow, Field, Lede, SectionHead, Table, Tag, useDialogs } from "@/components/ui";
 import { useLang, tr } from "@/lib/i18n";
-import { fmtDate, lak } from "@/lib/format";
+import { fmtDate, money } from "@/lib/format";
 import { useDepartments, useMyResort, useProperties, useRequestDepartmentChanges, useStaff } from "@/features/hr/api";
 import { EmployeeFormModal } from "@/features/hr/components/EmployeeFormModal";
 import { NewDepartmentForm } from "@/features/hr/components/NewDepartmentForm";
@@ -140,7 +140,7 @@ export default function DirectoryPage() {
                     <td>{e.position || "—"}</td>
                     <td>{e.property || "—"}</td>
                     <td>{fmtDate(e.hire_date)}</td>
-                    <td className="mono">{lak(e.base_salary)}</td>
+                    <td className="mono">{money(e.base_salary, e.salary_currency)}</td>
                     <td>{fmtDate(e.last_salary_change)}</td>
                     <td className="mono">{e.scanner_pin || <span className="c-soft">—</span>}</td>
                     <td>{e.status === "on_leave" ? <Tag kind="pending">{tr("On leave", "ລາພັກ")}</Tag> : <Tag kind="ok">{tr("Active", "ເຮັດວຽກ")}</Tag>}</td>
