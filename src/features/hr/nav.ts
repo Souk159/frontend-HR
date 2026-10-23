@@ -1,7 +1,7 @@
 import type { TKey } from "@/lib/i18n";
 import type { HRAccess, HRTab } from "./types";
 
-export type NavGroup = "people" | "time" | "pay" | "settings";
+export type NavGroup = "home" | "people" | "time" | "pay" | "settings";
 
 type NavItem = {
   href: string;
@@ -14,6 +14,7 @@ type NavItem = {
 
 /** Sidebar sections, in display order. */
 export const NAV_GROUPS: { id: NavGroup; label: TKey }[] = [
+  { id: "home", label: "ng_home" },
   { id: "people", label: "ng_people" },
   { id: "time", label: "ng_time" },
   { id: "pay", label: "ng_pay" },
@@ -22,6 +23,8 @@ export const NAV_GROUPS: { id: NavGroup; label: TKey }[] = [
 
 /** Every HR screen of prototype v168 plus our additions, grouped for the sidebar. */
 export const HR_NAV: NavItem[] = [
+  { href: "/hr/dashboard", label: "tb_dashboard", icon: "🏠", group: "home", needs: "directory" },
+
   { href: "/hr/directory", label: "tb_employee_directory", icon: "👥", group: "people", needs: "directory" },
   { href: "/hr/employee-status", label: "tb_employee_status", icon: "📋", group: "people", needs: "employee_status" },
   { href: "/hr/resigned", label: "tb_resigned", icon: "🚪", group: "people", needs: "resigned" },
@@ -61,9 +64,10 @@ export const onPage = (pathname: string, href: string) => pathname === href || p
 /** Roles that land on the HR Overview dashboard after signing in. */
 const OVERVIEW_FIRST = ["coo", "ceo"];
 
-/** Where /hr sends the signed-in user: COO/CEO see the overview first, everyone else their first tab. */
+/** Where /hr sends the signed-in user: COO/CEO see the overview first, others the dashboard (else their first tab). */
 export function homeHref(access: HRAccess, nav: NavItem[]): string {
   if (OVERVIEW_FIRST.includes(access.role) && nav.some((n) => n.href === "/hr/overview")) return "/hr/overview";
+  if (nav.some((n) => n.href === "/hr/dashboard")) return "/hr/dashboard";
   return nav[0].href;
 }
 

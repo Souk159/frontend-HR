@@ -3,6 +3,7 @@
 import { Suspense, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LangToggle, useLang, tr } from "@/lib/i18n";
+import { errorToLao } from "@/lib/errorsLo";
 
 function LoginForm() {
   const { t } = useLang();
@@ -25,7 +26,7 @@ function LoginForm() {
         body: JSON.stringify({ username, password, business_slug: business }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error ?? tr("Sign-in failed", "ເຂົ້າລະບົບບໍ່ສຳເລັດ"));
+      if (!res.ok) throw new Error(data.error ? tr(data.error, errorToLao(data.error)) : tr("Sign-in failed", "ເຂົ້າລະບົບບໍ່ສຳເລັດ"));
       // only allow same-site relative redirects
       router.replace(next.startsWith("/") && !next.startsWith("//") ? next : "/hr");
       router.refresh();

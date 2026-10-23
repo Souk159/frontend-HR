@@ -93,7 +93,7 @@ export function requestOutcome(res: { applied?: boolean } | undefined, what: str
 
 /** Dialog after approving / denying; "pending" = this role signed, others still have to. */
 export function decisionMessage(a: Approval, status: "approved" | "denied" | "pending"): [string, string] {
-  const what = `${approvalLabel(a.type)} — ${a.target} (${approvalChange(a)})`;
+  const what = `${approvalLabel(a.type)} — ${approvalText(a.target)} (${approvalChange(a)})`;
   if (status === "pending") {
     const signed = new Set(a.approvals.map((s) => s.role));
     const waiting = rolesText(a.required_roles.filter((r) => !signed.has(r)));
@@ -118,16 +118,34 @@ export function batchOutcome(res: { requests_created: number; applied?: number }
   ];
 }
 
-/** fixed change values the server writes in English */
-const VALUE_LO: Record<string, string> = {
-  "Follows the rule": "ໃຫ້ຕາມກົດ",
-  "Granted (set by HR)": "ໃຫ້ສິດ (HR ກຳນົດ)",
-  "Not granted (set by HR)": "ບໍ່ໃຫ້ສິດ (HR ກຳນົດ)",
-};
+/** fixed words the server writes in English inside approval targets / values */
+const PHRASES_LO: [RegExp, string][] = [
+  [/Not granted \(set by HR\)/g, "ບໍ່ໃຫ້ສິດ (HR ກຳນົດ)"],
+  [/Granted \(set by HR\)/g, "ໃຫ້ສິດ (HR ກຳນົດ)"],
+  [/Follows the rule/g, "ໃຫ້ຕາມກົດ"],
+  [/Annual leave/g, "ລາພັກປະຈຳປີ"],
+  [/Public holiday/g, "ວັນພັກລັດຖະການ"],
+  [/Weekly holiday/g, "ວັນພັກປະຈຳອາທິດ"],
+  [/Sick leave/g, "ລາປ່ວຍ"],
+  [/(\d+(?:\.\d+)?) days used/g, "ໃຊ້ $1 ມື້"],
+  [/\b(\d+) staff\b/g, "$1 ຄົນ"],
+  [/(\d+(?:\.\d+)?)h\/day, (\d+) days\/week/g, "$1 ຊມ/ມື້, $2 ມື້/ອາທິດ"],
+  [/annual (\d+)d, sick (\d+)d/g, "ລາພັກປະຈຳປີ $1 ມື້, ລາປ່ວຍ $2 ມື້"],
+  [/\(rest not ([^)]+)\)/g, "(ພັກວັນ $1 ບໍ່ໄດ້)"],
+  [/\bSun\b/g, "ອາທິດ"],
+  [/\bMon\b/g, "ຈັນ"],
+  [/\bTue\b/g, "ອັງຄານ"],
+  [/\bWed\b/g, "ພຸດ"],
+  [/\bThu\b/g, "ພະຫັດ"],
+  [/\bFri\b/g, "ສຸກ"],
+  [/\bSat\b/g, "ເສົາ"],
+];
+/** An approval target / value in the screen language (names and numbers stay as they are). */
+export const approvalText = (v: string) => tr(v, PHRASES_LO.reduce((s, [re, lo]) => s.replace(re, lo), v));
 
 /** "₭3,200,000 → ₭3,500,000" / "3 → 4" / "old → new" (prototype change column) */
 export function approvalChange(a: Approval): string {
-  const fmt = (v: string) => (a.value_format === "currency" && v.trim() !== "" && !isNaN(Number(v)) ? lak(Number(v)).replace(" ", "") : tr(v, VALUE_LO[v] ?? v));
+  const fmt = (v: string) => (a.value_format === "currency" && v.trim() !== "" && !isNaN(Number(v)) ? lak(Number(v)).replace(" ", "") : approvalText(v));
   return `${fmt(a.old_value)} → ${fmt(a.new_value)}`;
 }
 

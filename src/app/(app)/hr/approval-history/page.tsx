@@ -5,7 +5,7 @@ import { DataState, EmptyRow, Lede, SectionHead, StatusTag, Table } from "@/comp
 import { useLang, tr } from "@/lib/i18n";
 import { useApprovals, useHRAccess } from "@/features/hr/api";
 import { ApprovalDetailModal } from "@/features/hr/components/ApprovalDetailModal";
-import { approvalChange, approvalLabel, fmtStamp } from "@/features/hr/utils";
+import { approvalChange, approvalLabel, fmtStamp, approvalText } from "@/features/hr/utils";
 
 export default function ApprovalHistoryPage() {
   const { t } = useLang();
@@ -24,7 +24,7 @@ export default function ApprovalHistoryPage() {
             <tr key={a.id} className="clickable" onClick={() => setOpen(a.id)}>
               <td>{approvalLabel(a.type)}</td>
               <td>
-                {a.target}
+                {approvalText(a.target)}
                 {a.property && <div className="hint">{a.property}</div>}
               </td>
               <td className="mono" style={{ fontSize: 10.5 }}>

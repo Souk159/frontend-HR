@@ -2,6 +2,9 @@
  * Browser-side API client. Calls go to the Next.js BFF (/api/v1/*), which
  * attaches the session token — no token handling happens in the browser.
  */
+import { tr } from "@/lib/i18n";
+import { errorToLao } from "@/lib/errorsLo";
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -39,6 +42,8 @@ export const api = {
   del: <T>(path: string) => request<T>("DELETE", path),
 };
 
+/** The error text to show — API messages in Lao when the screen is in Lao. */
 export function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
+  const msg = err instanceof Error ? err.message : String(err);
+  return err instanceof ApiError ? tr(msg, errorToLao(msg)) : msg;
 }

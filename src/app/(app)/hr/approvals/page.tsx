@@ -6,7 +6,7 @@ import { useLang, tr } from "@/lib/i18n";
 import { useApprovals, useDecideApproval } from "@/features/hr/api";
 import { ApprovalDetailModal } from "@/features/hr/components/ApprovalDetailModal";
 import type { Approval } from "@/features/hr/types";
-import { approvalChange, approvalLabel, decisionMessage, fmtStamp } from "@/features/hr/utils";
+import { approvalChange, approvalLabel, decisionMessage, fmtStamp, approvalText } from "@/features/hr/utils";
 import { NeedsCell } from "@/features/hr/components/NeedsCell";
 
 /** Prototype screen-hrapprovals — GM / COO sign-off queue. */
@@ -39,7 +39,7 @@ export default function HRApprovalsPage() {
             <tr key={a.id}>
               <td>{approvalLabel(a.type)}</td>
               <td>
-                {a.target}
+                {approvalText(a.target)}
                 {a.property && <div className="hint">{a.property}</div>}
               </td>
               <td className="mono" style={{ fontSize: 10.5, cursor: "pointer" }} onClick={() => setOpen(a.id)}>
