@@ -1,8 +1,4 @@
-// Shared frame for signed-in screens (prototype .app-frame > .app-window)
+// Signed-in screens: each module draws its own full-screen shell (HR: sidebar + page header)
 export default function AppLayout({ children }: LayoutProps<"/">) {
-  return (
-    <div className="app-frame">
-      <div className="app-window">{children}</div>
-    </div>
-  );
+  return children;
 }
