@@ -43,6 +43,7 @@ const blank = (): StaffInput => ({
   note: "",
   scanner_pin: "",
   requires_scan: true,
+  no_ot: false,
   gets_service_charge: true,
   always_full_service: false,
   gets_annual_leave: true,
@@ -74,6 +75,7 @@ const fromStaff = (s: Staff): StaffInput => ({
   note: s.note,
   scanner_pin: s.scanner_pin,
   requires_scan: s.requires_scan,
+  no_ot: s.no_ot,
   gets_service_charge: s.gets_service_charge,
   always_full_service: s.always_full_service,
   gets_annual_leave: s.gets_annual_leave,
@@ -158,7 +160,7 @@ function EmployeeForm({ editing: editingStaff, onClose }: { editing: Staff | nul
       } else if (editingId) {
         const res = await change.mutateAsync({ id: editingId, body });
         onClose();
-        dialogs.success(...requestOutcome(res, `Changes to ${body.full_name}'s profile`));
+        dialogs.success(...requestOutcome(res, tr(`Changes to ${body.full_name}'s profile`, `ການແກ້ຂໍ້ມູນຂອງ ${body.full_name}`)));
       }
     } catch (err) {
       dialogs.error(isNew ? tr("Could not add employee", "ເພີ່ມພະນັກງານບໍ່ສຳເລັດ") : tr("Could not send request", "ສົ່ງຄຳຂໍບໍ່ສຳເລັດ"), err);
@@ -380,10 +382,27 @@ function PayrollFlags({ f, set }: { f: StaffInput; set: <K extends keyof StaffIn
         <input type="checkbox" checked={f.always_full_service} onChange={(e) => set("always_full_service", e.target.checked)} />
         {tr("Always gets full service charge (even on leave)", "ໄດ້ຄ່າບໍລິການເຕັມສະເໝີ (ເຖິງວ່າລາພັກ)")}
       </label>
-      <label className="check-label">
-        <input type="checkbox" checked={!f.requires_scan} onChange={(e) => set("requires_scan", !e.target.checked)} />
-        {tr("No fingerprint scan needed (e.g. GM, HR) — full salary, no OT", "ບໍ່ຕ້ອງສະແກນ (ເຊັ່ນ GM, HR) — ເງິນເດືອນເຕັມ, ບໍ່ມີ OT")}
-      </label>
+      <label style={{ marginTop: 10 }}>{tr("Attendance & OT", "ການສະແກນ ແລະ OT")}</label>
+      {(
+        [
+          ["scan_ot", true, false, tr("Must scan — paid OT (normal)", "ຕ້ອງສະແກນ — ມີ OT (ປົກກະຕິ)")],
+          ["scan_no_ot", true, true, tr("Must scan, but no OT — short hours are deducted, extra hours are not paid", "ຕ້ອງສະແກນ ແຕ່ບໍ່ມີ OT — ຂາດຊົ່ວໂມງຖືກຫັກ, ເກີນຊົ່ວໂມງບໍ່ຈ່າຍ")],
+          ["no_scan", false, false, tr("No scan needed (e.g. GM, HR) — full salary, no OT", "ບໍ່ຕ້ອງສະແກນ (ເຊັ່ນ GM, HR) — ເງິນເດືອນເຕັມ, ບໍ່ມີ OT")],
+        ] as const
+      ).map(([key, scan, noOT, label]) => (
+        <label className="check-label" key={key}>
+          <input
+            type="radio"
+            name="scan-mode"
+            checked={f.requires_scan === scan && (!scan || f.no_ot === noOT)}
+            onChange={() => {
+              set("requires_scan", scan);
+              set("no_ot", noOT);
+            }}
+          />
+          {label}
+        </label>
+      ))}
       <p className="hint" style={{ margin: "4px 0 8px" }}>
         {tr(
           "Annual leave, public holiday and weekly holiday start by length of service — see Employee Status, where HR can also tick or untick them for one person.",

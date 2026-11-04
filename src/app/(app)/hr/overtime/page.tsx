@@ -102,7 +102,7 @@ function DayCard({ data }: { data: OTDay }) {
   const allFinal = lines.length > 0 && lines.every((l) => l.status === "finalized");
   const editOf = (l: OTLine): Edit => edits[l.user_id] ?? { final: String(l.final_hours), kind: l.kind, removed: l.removed };
   const inList = new Set([...lines.map((l) => l.user_id), ...added.map((a) => a.user_id)]);
-  const addable = (staff.data ?? []).filter((s) => s.status !== "resigned" && s.requires_scan && !inList.has(s.user_id));
+  const addable = (staff.data ?? []).filter((s) => s.status !== "resigned" && s.requires_scan && !s.no_ot && !inList.has(s.user_id));
   const [pick, setPick] = useState({ user_id: "", final: "1", kind: "daily" as OTKind });
 
   function startEdit() {

@@ -225,6 +225,7 @@ function DeptCard({ dept: d, preview }: { dept: PayrollDept; preview: PayrollPre
             </td>
             <td className="mono">
               {lak(r.ot_pay)}
+              {r.no_ot && <div className="hint">{tr("no OT", "ບໍ່ມີ OT")}</div>}
               {(r.ot_hours > 0 || r.ot_hours_daily > 0) && (
                 <div className="hint">
                   {r.ot_hours > 0 && tr(`${num(r.ot_hours)}h over`, `ເກີນເດືອນ ${num(r.ot_hours)} ຊມ`)}

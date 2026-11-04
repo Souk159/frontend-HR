@@ -154,6 +154,8 @@ export type Staff = {
   has_login: boolean;
   scanner_pin: string;
   requires_scan: boolean;
+  /** scans (short hours deducted) but is never paid OT */
+  no_ot: boolean;
   /** profile photo uploaded by HR ("" = none) */
   photo_url: string;
   /** enrolment photo the scanner sent for this employee's PIN */
@@ -186,6 +188,8 @@ export type StaffInput = {
   note: string;
   scanner_pin: string;
   requires_scan: boolean;
+  /** scans (short hours deducted) but is never paid OT */
+  no_ot: boolean;
   gets_service_charge: boolean;
   always_full_service: boolean;
   gets_annual_leave: boolean;
@@ -437,6 +441,8 @@ export type PayrollRow = {
   /** hours/day × days/week × 4 */
   month_hours: number;
   requires_scan: boolean;
+  /** scans (short hours deducted) but is never paid OT */
+  no_ot: boolean;
   /** must scan but nothing scanned → HR should check */
   no_scans: boolean;
   half_days: number;
