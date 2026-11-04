@@ -31,6 +31,8 @@ export type HRAccess = {
   can_manage_access: boolean;
   /** owner / admin / GM: the User Accounts screen */
   can_manage_accounts: boolean;
+  /** HR Coordinator barred from seeing salaries (Manage HR Access) */
+  hide_salary?: boolean;
   /** the resort this account is limited to; null = central HR (every resort) */
   property: { id: string; name: string } | null;
 };
@@ -282,7 +284,7 @@ export type Approval = {
   new_value: string;
   value_format: "text" | "currency" | "number";
   payload: Record<string, unknown>;
-  status: "pending" | "approved" | "denied";
+  status: "pending" | "approved" | "denied" | "cancelled";
   requested_by: string;
   requested_at: string;
   reviewed_by: string;
@@ -294,6 +296,8 @@ export type Approval = {
   approvals: { role: string; by: string; at: string }[];
   /** the signed-in user may approve / deny it now */
   can_decide: boolean;
+  /** the caller sent it (or may decide it) and it is still pending */
+  can_cancel: boolean;
   /** the resort it belongs to; null = the whole group */
   property_id: string | null;
   property: string;
@@ -566,6 +570,8 @@ export type BenefitState = {
   starts: string | null;
   /** a change is waiting for approval */
   pending: boolean;
+  /** that request — it can be cancelled */
+  pending_id: string | null;
 };
 /** Benefits by length of service (prototype v207 Employee Status). */
 export type Benefits = {

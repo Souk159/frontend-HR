@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Avatar, DataState, EmptyRow, Field, Lede, SectionHead, Table, Tag, useDialogs } from "@/components/ui";
 import { useLang, tr } from "@/lib/i18n";
 import { fmtDate, money } from "@/lib/format";
-import { useDepartments, useMyResort, useProperties, useRequestDepartmentChanges, useStaff } from "@/features/hr/api";
+import { useDepartments, useHRAccess, useMyResort, useProperties, useRequestDepartmentChanges, useStaff } from "@/features/hr/api";
 import { EmployeeFormModal } from "@/features/hr/components/EmployeeFormModal";
 import { NewDepartmentForm } from "@/features/hr/components/NewDepartmentForm";
 import type { Staff } from "@/features/hr/types";
@@ -20,6 +20,7 @@ export default function DirectoryPage() {
   const props = useProperties();
   const mine = useMyResort(); // a resort account only ever sees its own resort
   const saveChanges = useRequestDepartmentChanges();
+  const hideSalary = !!useHRAccess().data?.hide_salary;
 
   const [search, setSearch] = useState("");
   const [propertyId, setPropertyId] = useState("");
@@ -112,19 +113,23 @@ export default function DirectoryPage() {
                       value={dr.quota ?? String(d.quota)}
                       onChange={(e) => setDrafts((p) => ({ ...p, [d.id]: { ...p[d.id], quota: e.target.value } }))}
                     />
-                    &nbsp;·&nbsp;{tr("Base/min salary", "ເງິນເດືອນພື້ນຖານ")} ₭
-                    <input
-                      className="inline-input"
-                      style={{ width: 100, textAlign: "right" }}
-                      value={dr.base_salary ?? String(d.base_salary)}
-                      onChange={(e) => setDrafts((p) => ({ ...p, [d.id]: { ...p[d.id], base_salary: e.target.value } }))}
-                    />
-                    <span title={tr("Used to calculate this department's quota bonus", "ໃຊ້ຄິດໂບນັດໂຄຕາຂອງພະແນກ")}>ⓘ</span>
+                    {!hideSalary && (
+                      <>
+                        &nbsp;·&nbsp;{tr("Base/min salary", "ເງິນເດືອນພື້ນຖານ")} ₭
+                        <input
+                          className="inline-input"
+                          style={{ width: 100, textAlign: "right" }}
+                          value={dr.base_salary ?? String(d.base_salary)}
+                          onChange={(e) => setDrafts((p) => ({ ...p, [d.id]: { ...p[d.id], base_salary: e.target.value } }))}
+                        />
+                        <span title={tr("Used to calculate this department's quota bonus", "ໃຊ້ຄິດໂບນັດໂຄຕາຂອງພະແນກ")}>ⓘ</span>
+                      </>
+                    )}
                   </span>
                 )}
               </h3>
-              <Table head={[tr("ID", "ລະຫັດ"), tr("Name", "ຊື່"), tr("Position", "ຕຳແໜ່ງ"), tr("Property", "ຣີສອດ"), tr("Hire date", "ວັນເຂົ້າວຽກ"), tr("Base salary", "ເງິນເດືອນ"), tr("Last salary change", "ປັບເງິນເດືອນລ່າສຸດ"), tr("Scanner PIN", "PIN ສະແກນ"), tr("Status", "ສະຖານະ"), ""]}>
-                {rows.length === 0 && <EmptyRow cols={10}>{tr("No employees in this department yet.", "ພະແນກນີ້ຍັງບໍ່ມີພະນັກງານ.")}</EmptyRow>}
+              <Table head={[tr("ID", "ລະຫັດ"), tr("Name", "ຊື່"), tr("Position", "ຕຳແໜ່ງ"), tr("Property", "ຣີສອດ"), tr("Hire date", "ວັນເຂົ້າວຽກ"), ...(hideSalary ? [] : [tr("Base salary", "ເງິນເດືອນ"), tr("Last salary change", "ປັບເງິນເດືອນລ່າສຸດ")]), tr("Scanner PIN", "PIN ສະແກນ"), tr("Status", "ສະຖານະ"), ""]}>
+                {rows.length === 0 && <EmptyRow cols={hideSalary ? 8 : 10}>{tr("No employees in this department yet.", "ພະແນກນີ້ຍັງບໍ່ມີພະນັກງານ.")}</EmptyRow>}
                 {rows.map((e) => (
                   <tr key={e.user_id}>
                     <td className="mono">{e.employee_no || "—"}</td>
@@ -140,8 +145,12 @@ export default function DirectoryPage() {
                     <td>{e.position || "—"}</td>
                     <td>{e.property || "—"}</td>
                     <td>{fmtDate(e.hire_date)}</td>
-                    <td className="mono">{money(e.base_salary, e.salary_currency)}</td>
-                    <td>{fmtDate(e.last_salary_change)}</td>
+                    {!hideSalary && (
+                      <>
+                        <td className="mono">{money(e.base_salary, e.salary_currency)}</td>
+                        <td>{fmtDate(e.last_salary_change)}</td>
+                      </>
+                    )}
                     <td className="mono">{e.scanner_pin || <span className="c-soft">—</span>}</td>
                     <td>{e.status === "on_leave" ? <Tag kind="pending">{tr("On leave", "ລາພັກ")}</Tag> : <Tag kind="ok">{tr("Active", "ເຮັດວຽກ")}</Tag>}</td>
                     <td style={{ whiteSpace: "nowrap" }}>

@@ -150,7 +150,7 @@ export const useOverview = () => useQuery({ queryKey: hrKeys.overview, queryFn: 
 export const useCoordinators = () =>
   useQuery({
     queryKey: hrKeys.coordinators,
-    queryFn: () => api.get<{ coordinators: Coordinator[]; available_tabs: string[] }>("/hr/coordinators"),
+    queryFn: () => api.get<{ coordinators: Coordinator[]; available_tabs: string[]; available_flags?: string[] }>("/hr/coordinators"),
   });
 export const useScanners = () => useQuery({ queryKey: hrKeys.scanners, queryFn: () => api.get<Scanner[]>("/hr/scanners") });
 export const useOrgSettings = () =>
@@ -346,6 +346,7 @@ export const useDailyHireDayAction = () =>
     [HR_ALL],
   );
 
+export const useCancelApproval = () => useHRMutation((id: string) => api.post(`/hr/approvals/${id}/cancel`), [["hr"]]);
 export const useDecideApproval = () =>
   useHRMutation(
     ({ id, decision }: { id: string; decision: "approved" | "denied" }) =>

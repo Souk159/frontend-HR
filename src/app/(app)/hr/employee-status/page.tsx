@@ -4,7 +4,7 @@ import { useState } from "react";
 import { DataState, Lede, SectionHead, Table, Tag, useDialogs } from "@/components/ui";
 import { useLang, tr } from "@/lib/i18n";
 import { daysUntil, fmtDate, num } from "@/lib/format";
-import { useBenefits, useDepartments, useMyResort, useRequestBenefitOverride, useRequestBenefitRules, useStaff } from "@/features/hr/api";
+import { useBenefits, useDepartments, useMyResort, useRequestBenefitOverride, useCancelApproval, useRequestBenefitRules, useStaff } from "@/features/hr/api";
 import type { BenefitKey, Benefits, Staff } from "@/features/hr/types";
 import { employmentLabel, groupByDept, requestOutcome, statusWarning } from "@/features/hr/utils";
 
@@ -136,7 +136,18 @@ export default function EmployeeStatusPage() {
 function BenefitCell({ e, b, k }: { e: Staff; b: EmpBenefits; k: BenefitKey }) {
   const dialogs = useDialogs();
   const req = useRequestBenefitOverride();
+  const cancel = useCancelApproval();
   const s = b.benefits[k];
+
+  async function cancelRequest() {
+    if (!s.pending_id) return;
+    try {
+      await cancel.mutateAsync(s.pending_id);
+      dialogs.success(tr("Request cancelled", "ຍົກເລີກຄຳຂໍແລ້ວ"), tr(`${benefitLabel(k)} for ${e.full_name} stays as it was.`, `${benefitLabel(k)} ຂອງ ${e.full_name} ຄືເກົ່າ.`));
+    } catch (err) {
+      dialogs.error(tr("Could not cancel", "ຍົກເລີກບໍ່ສຳເລັດ"), err);
+    }
+  }
 
   async function change(granted: boolean | null) {
     const what = granted === null ? tr("follow the rule", "ໃຫ້ຕາມກົດ") : granted ? tr("granted", "ໃຫ້ສິດ") : tr("not granted", "ບໍ່ໃຫ້ສິດ");
@@ -179,6 +190,14 @@ function BenefitCell({ e, b, k }: { e: Staff; b: EmpBenefits; k: BenefitKey }) {
       <div className="hint" style={{ margin: 0 }}>
         {note}
         {s.pending && tr(" · ⏳ awaiting approval", " · ⏳ ລໍຖ້າອະນຸມັດ")}
+        {s.pending && s.pending_id && (
+          <>
+            {" · "}
+            <button type="button" className="link-btn" style={{ fontSize: 10.5, padding: 0, border: "none", background: "none", color: "var(--clay)", textDecoration: "underline", cursor: "pointer" }} onClick={cancelRequest} disabled={cancel.isPending}>
+              {tr("cancel request", "ຍົກເລີກຄຳຂໍ")}
+            </button>
+          </>
+        )}
         {s.override !== null && !s.pending && (
           <>
             {" · "}

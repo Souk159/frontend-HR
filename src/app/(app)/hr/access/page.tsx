@@ -19,7 +19,7 @@ const TAB_LABEL: Record<string, TKey> = {
 export default function ManageHRAccessPage() {
   const { t } = useLang();
   const co = useCoordinators();
-  const tabs = co.data?.available_tabs ?? [];
+  const tabs = [...(co.data?.available_tabs ?? []), ...(co.data?.available_flags ?? [])];
   return (
     <div className="dash-wrap">
       <SectionHead title={t("sh_hr_coord_permissions")} />
@@ -27,7 +27,11 @@ export default function ManageHRAccessPage() {
         {tr("Decide which specific HR tabs each coordinator can reach. Payroll, Approvals, and Manage HR Access itself are never available to a Coordinator, regardless of what's checked here — only the HR Manager and above can touch those.", "ກຳນົດວ່າຜູ້ປະສານງານແຕ່ລະຄົນ ເຂົ້າໜ້າ HR ໃດໄດ້. ເງິນເດືອນ, ການອະນຸມັດ ແລະ ການຈັດການສິດ ມອບໃຫ້ຜູ້ປະສານງານບໍ່ໄດ້ ບໍ່ວ່າຈະ tick ຫຍັງ — ສະເພາະ HR Manager ຂຶ້ນໄປ.")}
       </Lede>
       <DataState loading={co.isLoading} error={co.error}>
-        <Table head={[tr("Coordinator", "ຜູ້ປະສານງານ"), ...tabs.map((x) => t(TAB_LABEL[x] ?? "tb_employee_directory")), ""]}>
+        <Table head={[tr("Coordinator", "ຜູ້ປະສານງານ"), ...tabs.map((x) => (x === "hide_salary" ? (
+              <span key={x} className="c-clay">
+                {tr("Hide salaries", "ບໍ່ສະແດງເງິນເດືອນ")}
+              </span>
+            ) : t(TAB_LABEL[x] ?? "tb_employee_directory"))), ""]}>
           {(co.data?.coordinators ?? []).length === 0 && (
             <EmptyRow cols={tabs.length + 2}>{tr("No HR Coordinator accounts yet.", "ຍັງບໍ່ມີບັນຊີຜູ້ປະສານງານ HR.")}</EmptyRow>
           )}
@@ -37,12 +41,19 @@ export default function ManageHRAccessPage() {
           ))}
         </Table>
       </DataState>
+      <Lede>
+        {tr(
+          "\"Hide salaries\": the coordinator sees no salary anywhere (directory, employee form, department base salary) and cannot change one — a new hire they add starts on the department's base salary.",
+          "\"ບໍ່ສະແດງເງິນເດືອນ\": ຜູ້ປະສານງານຈະບໍ່ເຫັນເງິນເດືອນຢູ່ໃສເລີຍ (ສາລະບານ, ຟອມພະນັກງານ, ເງິນເດືອນພື້ນຖານຂອງພະແນກ) ແລະ ແກ້ເງິນເດືອນບໍ່ໄດ້ — ພະນັກງານໃໝ່ທີ່ເຂົາເພີ່ມ ຈະໄດ້ເງິນເດືອນພື້ນຖານຂອງພະແນກ.",
+        )}
+      </Lede>
       <Lede>{tr("New coordinator accounts are created by Admin with the \"HR Coordinator\" role (hr_coordinator), then given access here.", "ບັນຊີຜູ້ປະສານງານໃໝ່ ສ້າງໃນ ບັນຊີຜູ້ໃຊ້ (ບົດບາດ HR Coordinator) ແລ້ວມາມອບສິດຢູ່ນີ້.")}</Lede>
     </div>
   );
 }
 
 function CoordinatorRow({ co, tabs }: { co: Coordinator; tabs: string[] }) {
+  const { t } = useLang();
   const dialogs = useDialogs();
   const save = useSetCoordinatorTabs();
   const [checked, setChecked] = useState<Set<string>>(() => new Set(co.tabs));
@@ -50,7 +61,9 @@ function CoordinatorRow({ co, tabs }: { co: Coordinator; tabs: string[] }) {
   async function submit() {
     try {
       await save.mutateAsync({ id: co.user_id, tabs: [...checked] });
-      dialogs.success(tr("Access updated", "ອັບເດດສິດແລ້ວ"), tr(`${co.full_name} can now reach: ${[...checked].join(", ") || "nothing yet"}.`, `${co.full_name} ເຂົ້າເຖິງໄດ້: ${[...checked].join(", ") || "ຍັງບໍ່ມີ"}.`));
+      const names = [...checked].filter((x) => x !== "hide_salary").map((x) => t(TAB_LABEL[x] ?? "tb_employee_directory")).join(", ");
+      const salaryNote = checked.has("hide_salary") ? tr(" Salaries are hidden.", " ບໍ່ສະແດງເງິນເດືອນ.") : "";
+      dialogs.success(tr("Access updated", "ອັບເດດສິດແລ້ວ"), tr(`${co.full_name} can now reach: ${names || "nothing yet"}.${salaryNote}`, `${co.full_name} ເຂົ້າເຖິງໄດ້: ${names || "ຍັງບໍ່ມີ"}.${salaryNote}`));
     } catch (err) {
       dialogs.error(tr("Could not save", "ບັນທຶກບໍ່ສຳເລັດ"), err);
     }

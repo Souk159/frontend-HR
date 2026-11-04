@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { DataState, EmptyRow, Lede, SectionHead, Table, useDialogs } from "@/components/ui";
 import { useLang, tr } from "@/lib/i18n";
-import { useApprovals, useDecideApproval } from "@/features/hr/api";
+import { useApprovals, useCancelApproval, useDecideApproval } from "@/features/hr/api";
 import { ApprovalDetailModal } from "@/features/hr/components/ApprovalDetailModal";
 import type { Approval } from "@/features/hr/types";
 import { approvalChange, approvalLabel, decisionMessage, fmtStamp, approvalText } from "@/features/hr/utils";
@@ -16,6 +16,16 @@ export default function HRApprovalsPage() {
   const pending = useApprovals("pending");
   const decide = useDecideApproval();
   const [open, setOpen] = useState<string | null>(null);
+
+  const cancel = useCancelApproval();
+  async function cancelRequest(a: Approval) {
+    try {
+      await cancel.mutateAsync(a.id);
+      dialogs.success(tr("Request cancelled", "ຍົກເລີກຄຳຂໍແລ້ວ"), tr(`${approvalLabel(a.type)} — ${a.target}: nothing was changed.`, `${approvalLabel(a.type)} — ${approvalText(a.target)}: ບໍ່ມີຫຍັງປ່ຽນ.`));
+    } catch (err) {
+      dialogs.error(tr("Could not cancel", "ຍົກເລີກບໍ່ສຳເລັດ"), err);
+    }
+  }
 
   async function run(a: Approval, decision: "approved" | "denied") {
     try {
@@ -66,6 +76,11 @@ export default function HRApprovalsPage() {
                         {t("deny")}
                       </button>
                     </>
+                  )}
+                  {a.can_cancel && !a.can_decide && (
+                    <button type="button" className="no" onClick={() => cancelRequest(a)} disabled={cancel.isPending}>
+                      {tr("Cancel request", "ຍົກເລີກຄຳຂໍ")}
+                    </button>
                   )}
                 </span>
               </td>

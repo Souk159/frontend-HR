@@ -10,6 +10,7 @@ import {
   useCreateStaff,
   useDeleteStaffPhoto,
   useDepartments,
+  useHRAccess,
   useProperties,
   useRequestStaffChange,
   useStaff,
@@ -122,6 +123,7 @@ function EmployeeForm({ editing: editingStaff, onClose }: { editing: Staff | nul
       : { ...blank(), department_id: depts.data?.[0]?.id ?? null, property_id: props.data?.[0]?.id ?? null },
   );
   const [salary, setSalary] = useState(() => (editingStaff ? String(editingStaff.base_salary) : ""));
+  const hideSalary = !!useHRAccess().data?.hide_salary;
 
   const generateId = () =>
     fetchNextEmployeeNo()
@@ -141,7 +143,7 @@ function EmployeeForm({ editing: editingStaff, onClose }: { editing: Staff | nul
   async function submit() {
     const body = { ...f, base_salary: Number(salary) || 0 };
     if (!body.full_name.trim()) return dialogs.error(tr("Missing name", "ຂາດຊື່"), new Error(tr("Enter at least the employee's English name.", "ໃສ່ຢ່າງໜ້ອຍຊື່ພາສາອັງກິດ.")));
-    if (!body.base_salary) return dialogs.error(tr("Missing base salary", "ຂາດເງິນເດືອນ"), new Error(tr("Enter a base salary before saving.", "ໃສ່ເງິນເດືອນກ່ອນບັນທຶກ.")));
+    if (!body.base_salary && !hideSalary) return dialogs.error(tr("Missing base salary", "ຂາດເງິນເດືອນ"), new Error(tr("Enter a base salary before saving.", "ໃສ່ເງິນເດືອນກ່ອນບັນທຶກ.")));
     if (idClash)
       return dialogs.error(
         tr("Duplicate Employee ID", "ລະຫັດພະນັກງານຊ້ຳ"),
@@ -341,16 +343,20 @@ function EmployeeForm({ editing: editingStaff, onClose }: { editing: Staff | nul
         </Field>
       </div>
       <div className="land-row">
-        <Field label={tr("Base salary", "ເງິນເດືອນ")}>
-          <input inputMode="decimal" value={salary} onChange={(e) => setSalary(e.target.value.replace(/[^\d.]/g, ""))} placeholder="e.g. 3200000" />
-        </Field>
-        <Field label={tr("Salary currency", "ສະກຸນເງິນເດືອນ")} style={{ maxWidth: 140 }}>
-          <select value={f.salary_currency} onChange={(e) => set("salary_currency", e.target.value as SalaryCurrency)}>
-            <option value="LAK">₭ LAK</option>
-            <option value="USD">$ USD</option>
-            <option value="THB">฿ THB</option>
-          </select>
-        </Field>
+        {!hideSalary && (
+          <>
+            <Field label={tr("Base salary", "ເງິນເດືອນ")}>
+              <input inputMode="decimal" value={salary} onChange={(e) => setSalary(e.target.value.replace(/[^\d.]/g, ""))} placeholder="e.g. 3200000" />
+            </Field>
+            <Field label={tr("Salary currency", "ສະກຸນເງິນເດືອນ")} style={{ maxWidth: 140 }}>
+              <select value={f.salary_currency} onChange={(e) => set("salary_currency", e.target.value as SalaryCurrency)}>
+                <option value="LAK">₭ LAK</option>
+                <option value="USD">$ USD</option>
+                <option value="THB">฿ THB</option>
+              </select>
+            </Field>
+          </>
+        )}
         <Field label={tr("Bank / payment information", "ບັນຊີທະນາຄານ / ການຈ່າຍເງິນ")}>
           <input value={f.bank_account} onChange={(e) => set("bank_account", e.target.value)} placeholder={tr("e.g. BCEL — 010-12-00-1234567-8", "ເຊັ່ນ BCEL — 010-12-00-1234567-8")} />
         </Field>
