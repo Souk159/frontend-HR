@@ -131,6 +131,7 @@ const PHRASES_LO: [RegExp, string][] = [
   [/\b(\d+) staff\b/g, "$1 ຄົນ"],
   [/^See changes$/, "ເບິ່ງການປ່ຽນແປງ"],
   [/Must scan attendance/g, "ຕ້ອງສະແກນ"],
+  [/Scanner PIN/g, "PIN ສະແກນ"],
   [/\bNo OT\b/g, "ບໍ່ມີ OT"],
   [/Always full service charge/g, "ໄດ້ຄ່າບໍລິການເຕັມສະເໝີ"],
   [/Gets service charge/g, "ໄດ້ຄ່າບໍລິການ"],
