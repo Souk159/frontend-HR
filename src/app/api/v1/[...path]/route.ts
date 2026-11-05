@@ -24,10 +24,17 @@ async function forward(request: NextRequest, path: string[]) {
     if (ct) headers.set("Content-Type", ct);
     headers.set("Accept", request.headers.get("accept") ?? "application/json");
     if (token) headers.set("Authorization", `Bearer ${token}`);
+    // Yorsys Desktop tills authenticate with their own token, not a session
+    const till = request.headers.get("x-till-token");
+    if (till) headers.set("X-Till-Token", till);
+    const tillUser = request.headers.get("x-till-user"); // who is signed in on the till (PIN)
+    if (till && tillUser) headers.set("X-Till-User", tillUser);
     return fetch(target, { method: request.method, headers, body, cache: "no-store" });
   };
 
-  let access = request.cookies.get(ACCESS_COOKIE)?.value;
+  // a browser session (cookie), or a bearer token sent by Yorsys Desktop's POS set-up
+  const bearer = request.headers.get("authorization")?.match(/^Bearer (.+)$/)?.[1];
+  let access = request.cookies.get(ACCESS_COOKIE)?.value ?? bearer;
   const refresh = request.cookies.get(REFRESH_COOKIE)?.value;
   let rotated: TokenPair | null = null;
 
